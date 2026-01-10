@@ -2,97 +2,75 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>BASTA - Tablero TV</title>
+    <title>BASTA TV</title>
     <style>
-        body { background: #0f172a; color: white; font-family: system-ui, sans-serif; text-align: center; margin: 0; padding: 20px; }
-        .grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin-top: 20px; }
-        .card { background: #1e293b; border: 2px solid #38bdf8; border-radius: 12px; padding: 15px; width: 280px; }
-        .invalido { text-decoration: line-through; opacity: 0.4; color: #ef4444; }
-        h1 { color: #38bdf8; font-size: 3rem; }
-        .letter { font-size: 10rem; color: #facc15; margin: 20px 0; text-shadow: 0 0 20px rgba(250, 204, 21, 0.4); }
-        .cat-row { display: flex; justify-content: space-between; margin: 8px 0; border-bottom: 1px solid #334155; padding-bottom: 4px; }
-        .points { color: #4ade80; font-weight: bold; }
+        body { background: #0f172a; color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
+        .grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; }
+        .card { background: #1e293b; border: 2px solid #38bdf8; border-radius: 12px; padding: 15px; width: 260px; }
+        .letter { font-size: 8rem; color: #facc15; margin: 10px 0; }
+        .timer { font-size: 2rem; color: #ef4444; font-weight: bold; }
+        .invalido { text-decoration: line-through; color: #ef4444; opacity: 0.5; }
+        .cat-row { display: flex; justify-content: space-between; font-size: 0.85rem; border-bottom: 1px solid #334155; margin: 5px 0; }
     </style>
 </head>
 <body>
-    <div id="main-container">
-        <div id="lobby-view">
-            <h1>¡BASTA!</h1>
-            <p style="font-size: 1.2rem; color: #94a3b8;">Esperando inicio desde el celular...</p>
-            <div id="player-list" class="grid"></div>
-        </div>
+    <div id="lobby-view">
+        <h1>¡BASTA!</h1>
+        <div id="player-list" class="grid"></div>
+    </div>
 
-        <div id="game-view" style="display:none;">
-            <h2 id="round-info" style="color: #94a3b8;"></h2>
-            <div class="letter" id="letter-display"></div>
-            <h3 id="picker-info"></h3>
-        </div>
+    <div id="game-view" style="display:none;">
+        <h2 id="round-info"></h2>
+        <div class="timer" id="timer-display">60</div>
+        <div class="letter" id="letter-display"></div>
+        <h3 id="picker-info"></h3>
+    </div>
 
-        <div id="validation-view" style="display:none;">
-            <h1>Validando Respuestas</h1>
-            <div id="validation-grid" class="grid"></div>
-        </div>
+    <div id="validation-view" style="display:none;">
+        <h1>Validación</h1>
+        <div id="validation-grid" class="grid"></div>
+    </div>
 
-        <div id="final-view" style="display:none;">
-            <h1 style="font-size: 4rem;">🏆 RESULTADOS 🏆</h1>
-            <div id="final-results" class="grid"></div>
-        </div>
+    <div id="final-view" style="display:none;">
+        <h1>🏆 RESULTADOS 🏆</h1>
+        <div id="final-results" class="grid"></div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        const views = ['lobby-view', 'game-view', 'validation-view', 'final-view'];
-
-        function showView(id) {
-            views.forEach(v => document.getElementById(v).style.display = v === id ? 'block' : 'none');
-        }
-
         socket.on('update-player-list', (list) => {
-            document.getElementById('player-list').innerHTML = list.map(p => `
-                <div class="card"><h2>${p.name}</h2>${p.isHost ? '<span style="color:#facc15">⭐ Host</span>' : ''}</div>
-            `).join('');
+            document.getElementById('player-list').innerHTML = list.map(p => `<div class="card"><h2>${p.name}</h2>${p.isHost ? '⭐ Host' : ''}</div>`).join('');
         });
-
         socket.on('round-started', (data) => {
-            showView('game-view');
-            document.getElementById('round-info').innerText = `Ronda ${data.round} de ${data.totalRounds}`;
+            document.getElementById('lobby-view').style.display = 'none';
+            document.getElementById('validation-view').style.display = 'none';
+            document.getElementById('game-view').style.display = 'block';
             document.getElementById('letter-display').innerText = data.letter;
-            document.getElementById('picker-info').innerText = `Turno de letra: ${data.pickerName}`;
+            document.getElementById('round-info').innerText = `Ronda ${data.round}/${data.totalRounds}`;
         });
-
+        socket.on('timer-update', (t) => { document.getElementById('timer-display').innerText = t; });
         socket.on('show-validation', (players) => {
-            showView('validation-view');
-            const grid = document.getElementById('validation-grid');
-            grid.innerHTML = players.map(p => `
+            document.getElementById('game-view').style.display = 'none';
+            document.getElementById('validation-view').style.display = 'block';
+            document.getElementById('validation-grid').innerHTML = players.map(p => `
                 <div class="card">
                     <h3>${p.name}</h3>
-                    ${['nombre', 'apellido', 'animal', 'ciudad', 'color', 'fruto'].map(cat => `
-                        <div class="cat-row ${p.pointsDetail[cat] === 0 ? 'invalido' : ''}">
-                            <span><b>${cat}:</b> ${p.answers[cat] || '-'}</span>
-                            <span class="points">${p.pointsDetail[cat]}pts</span>
+                    ${['nombre','apellido','animal','ciudad','color','fruto'].map(cat => `
+                        <div class="cat-row ${p.pointsDetail[cat]===0?'invalido':''}">
+                            <span>${cat}: ${p.answers[cat]||'-'}</span>
+                            <span>${p.pointsDetail[cat]}pts</span>
                         </div>
                     `).join('')}
                 </div>
             `).join('');
         });
-
-        socket.on('game-over', (results) => {
-            showView('final-view');
-            document.getElementById('final-results').innerHTML = results.map((p, i) => `
-                <div class="card" style="width: 350px;">
-                    <h2>${i+1}. ${p.name}</h2>
-                    <p style="color:#4ade80; font-size: 2rem; margin:0;">${p.totalScore} pts</p>
-                </div>
-            `).join('');
+        socket.on('game-over', (res) => {
+            document.getElementById('validation-view').style.display = 'none';
+            document.getElementById('final-view').style.display = 'block';
+            document.getElementById('final-results').innerHTML = res.map(p => `<div class="card"><h2>${p.name}</h2><h1>${p.totalScore} pts</h1></div>`).join('');
         });
-
-        socket.on('game-reset-complete', (players) => {
-            showView('lobby-view');
-            // Reutilizamos la lógica de actualización de lista
-            socket.emit('update-player-list', players); 
-            location.reload(); // Recarga limpia para la TV
-        });
+        socket.on('game-reset-complete', () => location.reload());
     </script>
 </body>
 </html>
