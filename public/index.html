@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Basta - Tablero TV</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #2c3e50; color: white; }
+        #lobby { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+        .player-card { background: #34495e; padding: 20px; border-radius: 10px; min-width: 150px; }
+    </style>
+</head>
+<body>
+    <h1>BASTA - TABLERO</h1>
+    <div id="status">Esperando jugadores...</div>
+    <div id="lobby"></div>
+    <button id="startBtn" style="padding: 20px; font-size: 20px; margin-top: 50px;">INICIAR JUEGO</button>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const lobby = document.getElementById('lobby');
+
+        socket.on('update-player-list', (players) => {
+            lobby.innerHTML = players.map(p => `<div class="player-card"><h3>${p.name}</h3></div>`).join('');
+        });
+
+        document.getElementById('startBtn').onclick = () => socket.emit('start-game');
+
+        socket.on('game-started', (letter) => {
+            document.body.innerHTML = `<h1>LETRA: ${letter}</h1><div id='waiting'>¡Los jugadores están escribiendo!</div>`;
+        });
+    </script>
+</body>
+</html>
