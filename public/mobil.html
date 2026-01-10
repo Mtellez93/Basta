@@ -5,45 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Basta! Mando</title>
     <style>
-        body { font-family: sans-serif; padding: 15px; background: #f1f5f9; margin: 0; }
-        input { display: block; width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; margin-bottom: 10px; cursor: pointer; }
+        body { font-family: sans-serif; padding: 15px; background: #f1f5f9; margin: 0; color: #1e293b; }
+        input { display: block; width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #cbd5e1; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; margin-bottom: 10px; cursor: pointer; font-size: 16px; }
         .btn-join { background: #3b82f6; color: white; }
-        .btn-basta { background: #ef4444; color: white; font-size: 1.2rem; }
+        .btn-basta { background: #ef4444; color: white; font-size: 1.4rem; margin-top: 15px; }
         .btn-host { background: #10b981; color: white; }
-        .btn-del { background: #f87171; color: white; padding: 4px 8px; width: auto; font-size: 10px; }
-        .host-panel { background: #fff; border: 2px solid #10b981; padding: 10px; border-radius: 10px; margin-top: 10px; }
-        .val-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-bottom: 1px solid #eee; padding: 4px 0; }
+        .btn-del { background: #f87171; color: white; padding: 5px 10px; width: auto; font-size: 11px; margin-left: 10px; }
+        .host-panel { background: #fff; border: 2px solid #10b981; padding: 12px; border-radius: 10px; margin-top: 15px; }
+        .val-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; border-bottom: 1px solid #eee; padding: 6px 0; }
+        .label { font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-top: 10px; }
     </style>
 </head>
 <body>
     <div id="setup-view">
-        <input type="text" id="player-name" placeholder="Nombre">
-        <button class="btn-join" onclick="join()">CONECTAR</button>
+        <h2 style="text-align:center;">Basta Multiplayer</h2>
+        <div id="join-controls">
+            <input type="text" id="player-name" placeholder="Tu Nombre">
+            <button class="btn-join" onclick="join()">CONECTAR AL JUEGO</button>
+        </div>
         <div id="host-start" style="display:none;" class="host-panel">
+            <p style="text-align:center; color:#166534; font-weight:bold;">🌟 Eres Administrador</p>
             <button class="btn-host" onclick="socket.emit('start-game')">INICIAR PARTIDA</button>
         </div>
+        <p id="wait-msg" style="display:none; text-align:center;">Esperando inicio del host...</p>
     </div>
 
     <div id="game-view" style="display:none;">
-        <h2 id="letra" style="text-align:center;"></h2>
-        <input type="text" id="nombre" placeholder="Nombre" autocomplete="off">
-        <input type="text" id="apellido" placeholder="Apellido" autocomplete="off">
-        <input type="text" id="animal" placeholder="Animal" autocomplete="off">
-        <input type="text" id="ciudad" placeholder="Ciudad" autocomplete="off">
-        <input type="text" id="color" placeholder="Color" autocomplete="off">
-        <input type="text" id="fruto" placeholder="Fruto" autocomplete="off">
+        <h2 id="letra" style="text-align:center; color:#3b82f6; margin: 0 0 10px 0;"></h2>
+        <div class="label">Nombre</div><input type="text" id="nombre" autocomplete="off">
+        <div class="label">Apellido</div><input type="text" id="apellido" autocomplete="off">
+        <div class="label">Animal</div><input type="text" id="animal" autocomplete="off">
+        <div class="label">Ciudad / País</div><input type="text" id="ciudad" autocomplete="off">
+        <div class="label">Color</div><input type="text" id="color" autocomplete="off">
+        <div class="label">Flor o Fruto</div><input type="text" id="fruto" autocomplete="off">
         <button class="btn-basta" onclick="basta()">¡BASTA!</button>
     </div>
 
     <div id="wait-view" style="display:none;">
-        <h3 style="text-align:center;">Validando en TV...</h3>
+        <h3 style="text-align:center;">Validación en progreso...</h3>
         <div id="host-validation-panel" style="display:none;" class="host-panel">
-            <p><b>Anular palabras:</b></p>
-            <div id="validation-list"></div>
-            <button class="btn-host" onclick="socket.emit('next-round-action')">SIGUIENTE RONDA</button>
+            <p><b>Revisión (TV):</b></p>
+            <div id="validation-list" style="max-height: 250px; overflow-y: auto; margin-bottom: 10px;"></div>
+            <button class="btn-host" onclick="socket.emit('next-round-action')">ENVIAR Y SIGUIENTE</button>
         </div>
-        <button id="btn-reset" class="btn-join" style="display:none; background:#6366f1;" onclick="socket.emit('reset-game')">NUEVA PARTIDA</button>
+        <button id="btn-reset" class="btn-join" style="display:none; background:#6366f1; margin-top: 20px;" onclick="socket.emit('reset-game')">🔄 NUEVA PARTIDA</button>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -54,16 +60,21 @@
 
         socket.on('assign-role', (data) => { 
             soyHost = data.isHost; 
-            if(soyHost && document.getElementById('player-name').style.display === 'none') document.getElementById('host-start').style.display = 'block';
+            if(soyHost && document.getElementById('join-controls').style.display === 'none') {
+                document.getElementById('host-start').style.display = 'block';
+            }
         });
 
         function join() {
             const n = document.getElementById('player-name').value;
             if(!n) return;
             socket.emit('join-game', n);
-            document.getElementById('player-name').style.display = 'none';
-            document.querySelector('.btn-join').style.display = 'none';
-            if(soyHost) document.getElementById('host-start').style.display = 'block';
+            document.getElementById('join-controls').style.display = 'none';
+            if(soyHost) {
+                document.getElementById('host-start').style.display = 'block';
+            } else {
+                document.getElementById('wait-msg').style.display = 'block';
+            }
         }
 
         socket.on('round-started', (data) => {
@@ -71,16 +82,23 @@
             document.getElementById('wait-view').style.display = 'none';
             document.getElementById('game-view').style.display = 'block';
             document.getElementById('letra').innerText = "LETRA: " + data.letter;
+            
+            // --- LIMPIEZA DE CAMPOS PARA NUEVA RONDA ---
+            cats.forEach(c => document.getElementById(c).value = "");
         });
 
+        function getAnswers() {
+            let a = {}; 
+            cats.forEach(c => a[c] = document.getElementById(c).value);
+            return a;
+        }
+
         function basta() {
-            let a = {}; cats.forEach(c => a[c] = document.getElementById(c).value);
-            socket.emit('basta', a);
+            socket.emit('basta', getAnswers());
         }
 
         socket.on('force-submit', () => {
-            let a = {}; cats.forEach(c => a[c] = document.getElementById(c).value);
-            socket.emit('submit-final-answers', a);
+            socket.emit('submit-final-answers', getAnswers());
             document.getElementById('game-view').style.display = 'none';
             document.getElementById('wait-view').style.display = 'block';
         });
@@ -89,17 +107,18 @@
             if(!soyHost) return;
             document.getElementById('host-validation-panel').style.display = 'block';
             document.getElementById('validation-list').innerHTML = players.map(p => `
-                <div style="border-top:1px solid #10b981; margin-top:5px;"><b>${p.name}</b></div>
+                <div style="background:#f8fafc; padding:5px; border-radius:5px; margin-top:8px;"><b>${p.name}</b></div>
                 ${cats.map(c => `
                     <div class="val-row">
-                        <span>${c}: ${p.answers[c]||'-'}</span>
-                        <button class="btn-del" onclick="socket.emit('invalidate-word', {playerId:'${p.id}', category:'${c}'})">X</button>
+                        <span style="overflow:hidden; text-overflow:ellipsis;">${c}: ${p.answers[c]||'-'}</span>
+                        <button class="btn-del" onclick="socket.emit('invalidate-word', {playerId:'${p.id}', category:'${c}'})">ANULAR</button>
                     </div>
                 `).join('')}
             `).join('');
         });
 
         socket.on('game-over', () => {
+            document.getElementById('wait-view').querySelector('h3').innerText = "Fin del Juego";
             if(soyHost) document.getElementById('btn-reset').style.display = 'block';
         });
 
