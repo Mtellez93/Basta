@@ -1,78 +1,50 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Basta! Mando</title>
-    <style>
-        body { font-family: sans-serif; padding: 20px; background: #f4f4f9; }
-        input { display: block; width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; }
-        button { width: 100%; padding: 15px; border-radius: 8px; border: none; font-weight: bold; }
-        .btn-join { background: #4caf50; color: white; }
-        .btn-basta { background: #f44336; color: white; margin-top: 10px; }
-    </style>
-</head>
-<body>
-    <div id="setup">
+<div id="setup">
         <input type="text" id="name" placeholder="Escribe tu nombre">
         <button class="btn-join" onclick="join()">CONECTAR AL JUEGO</button>
     </div>
 
-    <div id="game" style="display:none;">
-        <h2 id="letra"></h2>
-        <input type="text" id="nombre" placeholder="Nombre">
-        <input type="text" id="apellido" placeholder="Apellido">
-        <input type="text" id="animal" placeholder="Animal">
-        <input type="text" id="ciudad" placeholder="Ciudad / País">
-        <input type="text" id="color" placeholder="Color">
-        <input type="text" id="fruto" placeholder="Flor / Fruto">
-        <button class="btn-basta" onclick="enviarBasta()">¡BASTA!</button>
+    <div id="host-controls" style="display:none; margin-top: 20px; padding: 15px; border: 2px dashed #4caf50;">
+        <p>🌟 Eres el Administrador</p>
+        <button class="btn-join" onclick="iniciarDesdeMovil()">INICIAR JUEGO PARA TODOS</button>
     </div>
 
-    <div id="wait" style="display:none;">
-        <h3>¡Espera! Estamos validando...</h3>
-    </div>
-
-    <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io();
-        const cats = ['nombre', 'apellido', 'animal', 'ciudad', 'color', 'fruto'];
+    // ... (variables de socket iguales)
 
-        function join() {
-            const n = document.getElementById('name').value;
-            if(n) {
-                socket.emit('join-game', n);
-                document.getElementById('setup').innerHTML = "<h3>Conectado. Mira la TV...</h3>";
+    socket.on('assign-role', (data) => {
+        if (data.isHost) {
+            // No lo mostramos de inmediato, esperamos a que se registre
+            window.isHost = true;
+        }
+    });
+
+    function join() {
+        const n = document.getElementById('name').value;
+        if(n) {
+            socket.emit('join-game', n);
+            document.getElementById('setup').innerHTML = "<h3>✅ Conectado. Esperando inicio...</h3>";
+            
+            // Si es host, mostramos sus controles
+            if (window.isHost) {
+                document.getElementById('host-controls').style.display = 'block';
             }
         }
+    }
 
-        socket.on('round-started', (data) => {
-            document.getElementById('setup').style.display = 'none';
-            document.getElementById('wait').style.display = 'none';
-            document.getElementById('game').style.display = 'block';
-            document.getElementById('letra').innerText = "LETRA: " + data.letter;
-            cats.forEach(c => document.getElementById(c).value = "");
-        });
+    function iniciarDesdeMovil() {
+        socket.emit('start-game');
+    }
 
-        function getAnswers() {
-            let a = {};
-            cats.forEach(c => a[c] = document.getElementById(c).value);
-            return a;
+    socket.on('round-started', (data) => {
+        document.getElementById('host-controls').style.display = 'none'; // Ocultar al jugar
+        // ... (resto de lógica de limpieza de inputs)
+    });
+    
+    // Al terminar ronda, el host podría tener el botón "Siguiente" también
+    socket.on('show-validation', () => {
+        if (window.isHost) {
+            document.getElementById('host-controls').innerHTML = '<button class="btn-join" onclick="socket.emit(\'next-round-action\')">SIGUIENTE RONDA</button>';
+            document.getElementById('host-controls').style.display = 'block';
         }
-
-        function enviarBasta() {
-            socket.emit('basta', getAnswers());
-        }
-
-        socket.on('force-submit', () => {
-            socket.emit('submit-final-answers', getAnswers());
-            document.getElementById('game').style.display = 'none';
-            document.getElementById('wait').style.display = 'block';
-        });
-
-        socket.on('show-validation', () => {
-            document.getElementById('game').style.display = 'none';
-            document.getElementById('wait').style.display = 'block';
-        });
-    </script>
-</body>
-</html>
+    });
+</script>
