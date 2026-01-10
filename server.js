@@ -19,7 +19,10 @@ let hostId = null;
 io.on('connection', (socket) => {
     
     socket.on('join-game', (name) => {
-        if (!hostId) hostId = socket.id;
+        // Si no hay host (porque es el primero o el anterior se fue)
+        if (!hostId) {
+            hostId = socket.id;
+        }
 
         players[socket.id] = { 
             id: socket.id, 
@@ -30,7 +33,10 @@ io.on('connection', (socket) => {
             isHost: (socket.id === hostId)
         };
         
+        // Enviamos confirmación de rol al jugador que entra
         socket.emit('assign-role', { isHost: players[socket.id].isHost });
+        
+        // Notificamos a todos la nueva lista de jugadores
         io.emit('update-player-list', Object.values(players));
     });
 
@@ -39,7 +45,8 @@ io.on('connection', (socket) => {
         const ids = Object.keys(players);
         if (ids.length === 0) return;
 
-        gameQueue = [...ids, ...ids]; // 2 vueltas por jugador
+        // 2 vueltas por jugador
+        gameQueue = [...ids, ...ids]; 
         totalRounds = gameQueue.length;
         currentRound = 1;
         startNewRound();
@@ -63,6 +70,7 @@ io.on('connection', (socket) => {
         if (gameState === 'PLAYING') {
             gameState = 'VALIDATING';
             players[socket.id].answers = answers;
+            // Bloquea a los demás y pide lo que tengan
             socket.broadcast.emit('force-submit');
             
             setTimeout(() => {
@@ -84,6 +92,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('next-round-action', () => {
+        // Sumar puntos de la ronda al total acumulado
         Object.values(players).forEach(p => {
             const roundSum = Object.values(p.pointsDetail).reduce((a, b) => a + b, 0);
             p.totalScore += roundSum;
@@ -136,4 +145,4 @@ function calculateScores() {
 }
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Servidor listo en puerto ${PORT}`));
+server.listen(PORT, () => console.log(`Servidor iniciado en puerto ${PORT}`));
