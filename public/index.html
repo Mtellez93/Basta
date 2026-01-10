@@ -2,20 +2,22 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>BASTA TV</title>
+    <title>BASTA TV - Tablero</title>
     <style>
         body { background: #0f172a; color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
         .grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; }
         .card { background: #1e293b; border: 2px solid #38bdf8; border-radius: 12px; padding: 15px; width: 260px; }
         .letter { font-size: 8rem; color: #facc15; margin: 10px 0; }
-        .timer { font-size: 2rem; color: #ef4444; font-weight: bold; }
+        .timer { font-size: 2.5rem; color: #ef4444; font-weight: bold; }
         .invalido { text-decoration: line-through; color: #ef4444; opacity: 0.5; }
-        .cat-row { display: flex; justify-content: space-between; font-size: 0.85rem; border-bottom: 1px solid #334155; margin: 5px 0; }
+        .cat-row { display: flex; justify-content: space-between; font-size: 0.85rem; border-bottom: 1px solid #334155; margin: 5px 0; padding-bottom: 2px; }
+        h1 { color: #38bdf8; }
     </style>
 </head>
 <body>
     <div id="lobby-view">
         <h1>¡BASTA!</h1>
+        <p>Conéctense para iniciar la partida</p>
         <div id="player-list" class="grid"></div>
     </div>
 
@@ -27,12 +29,12 @@
     </div>
 
     <div id="validation-view" style="display:none;">
-        <h1>Validación</h1>
+        <h1>Validando Respuestas...</h1>
         <div id="validation-grid" class="grid"></div>
     </div>
 
     <div id="final-view" style="display:none;">
-        <h1>🏆 RESULTADOS 🏆</h1>
+        <h1>🏆 RESULTADOS FINALES 🏆</h1>
         <div id="final-results" class="grid"></div>
     </div>
 
@@ -45,9 +47,10 @@
         socket.on('round-started', (data) => {
             document.getElementById('lobby-view').style.display = 'none';
             document.getElementById('validation-view').style.display = 'none';
+            document.getElementById('final-view').style.display = 'none';
             document.getElementById('game-view').style.display = 'block';
             document.getElementById('letter-display').innerText = data.letter;
-            document.getElementById('round-info').innerText = `Ronda ${data.round}/${data.totalRounds}`;
+            document.getElementById('round-info').innerText = `Ronda ${data.round} / ${data.totalRounds}`;
         });
         socket.on('timer-update', (t) => { document.getElementById('timer-display').innerText = t; });
         socket.on('show-validation', (players) => {
@@ -68,7 +71,13 @@
         socket.on('game-over', (res) => {
             document.getElementById('validation-view').style.display = 'none';
             document.getElementById('final-view').style.display = 'block';
-            document.getElementById('final-results').innerHTML = res.map(p => `<div class="card"><h2>${p.name}</h2><h1>${p.totalScore} pts</h1></div>`).join('');
+            document.getElementById('final-results').innerHTML = res.map(p => `
+                <div class="card">
+                    <h2>${p.name}</h2>
+                    <h1 style="color:#4ade80">${p.totalScore}</h1>
+                    <p>PUNTOS TOTALES</p>
+                </div>
+            `).join('');
         });
         socket.on('game-reset-complete', () => location.reload());
     </script>
