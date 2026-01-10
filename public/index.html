@@ -1,33 +1,40 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Basta - Tablero TV</title>
-    <style>
-        body { font-family: sans-serif; text-align: center; background: #2c3e50; color: white; }
-        #lobby { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
-        .player-card { background: #34495e; padding: 20px; border-radius: 10px; min-width: 150px; }
-    </style>
-</head>
-<body>
-    <h1>BASTA - TABLERO</h1>
-    <div id="status">Esperando jugadores...</div>
-    <div id="lobby"></div>
-    <button id="startBtn" style="padding: 20px; font-size: 20px; margin-top: 50px;">INICIAR JUEGO</button>
+<div id="validation-screen" style="display:none;">
+    <h2>Panel de Validación</h2>
+    <div id="results-table" style="display: flex; gap: 15px; justify-content: center;"></div>
+    <button onclick="nextRound()" style="margin-top:20px; padding:15px;">Siguiente Ronda</button>
+</div>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const socket = io();
-        const lobby = document.getElementById('lobby');
+<script>
+socket.on('show-validation', (allPlayers) => {
+    document.getElementById('status').style.display = 'none';
+    const container = document.getElementById('results-table');
+    container.parentElement.style.display = 'block';
+    
+    renderValidation(allPlayers);
+});
 
-        socket.on('update-player-list', (players) => {
-            lobby.innerHTML = players.map(p => `<div class="player-card"><h3>${p.name}</h3></div>`).join('');
-        });
+function renderValidation(allPlayers) {
+    const container = document.getElementById('results-table');
+    container.innerHTML = Object.entries(allPlayers).map(([id, p]) => `
+        <div class="player-card">
+            <h3>${p.name}</h3>
+            <div class="word-row">
+                Nombre: ${p.answers.nombre} (${p.pointsDetail.nombre}pts)
+                <button onclick="invalidate('${id}', 'nombre')">❌</button>
+            </div>
+            <div class="word-row">
+                Color: ${p.answers.color} (${p.pointsDetail.color}pts)
+                <button onclick="invalidate('${id}', 'color')">❌</button>
+            </div>
+            <div class="word-row">
+                Fruto: ${p.answers.fruto} (${p.pointsDetail.fruto}pts)
+                <button onclick="invalidate('${id}', 'fruto')">❌</button>
+            </div>
+        </div>
+    `).join('');
+}
 
-        document.getElementById('startBtn').onclick = () => socket.emit('start-game');
-
-        socket.on('game-started', (letter) => {
-            document.body.innerHTML = `<h1>LETRA: ${letter}</h1><div id='waiting'>¡Los jugadores están escribiendo!</div>`;
-        });
-    </script>
-</body>
-</html>
+function invalidate(playerId, category) {
+    socket.emit('invalidate-word', { playerId, category });
+}
+</script>
