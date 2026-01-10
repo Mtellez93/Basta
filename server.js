@@ -1,45 +1,46 @@
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const path = require('path');
+// Función para calcular puntos automáticamente
+function calculateScores() {
+    const categories = ['nombre', 'color', 'fruto'];
+    const allPlayers = Object.values(players);
 
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
+    categories.forEach(cat => {
+        const counts = {};
+        // Contar cuántas veces aparece cada palabra en esta categoría
+        allPlayers.forEach(p => {
+            const val = (p.answers[cat] || "").toLowerCase().trim();
+            if (val) counts[val] = (counts[val] || 0) + 1;
+        });
 
-app.use(express.static('public'));
-
-let players = {};
-let gameState = 'LOBBY'; // LOBBY, PLAYING, VALIDATING
-
-io.on('connection', (socket) => {
-    // Registro de jugador
-    socket.on('join-game', (name) => {
-        players[socket.id] = { name, answers: {}, score: 0, ready: false };
-        io.emit('update-player-list', Object.values(players));
+        // Asignar puntos base
+        allPlayers.forEach(p => {
+            const val = (p.answers[cat] || "").toLowerCase().trim();
+            if (!val) {
+                p.pointsDetail[cat] = 0;
+            } else if (counts[val] > 1) {
+                p.pointsDetail[cat] = 5; // Repetida
+            } else {
+                p.pointsDetail[cat] = 10; // Única
+            }
+        });
     });
+}
 
-    // Iniciar juego (desde la TV)
-    socket.on('start-game', () => {
-        gameState = 'PLAYING';
-        const letter = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ"[Math.floor(Math.random() * 27)];
-        io.emit('game-started', letter);
-    });
-
-    // Alguien grita ¡BASTA!
-    socket.on('basta', (answers) => {
-        if (gameState === 'PLAYING') {
-            gameState = 'VALIDATING';
-            players[socket.id].answers = answers;
-            io.emit('stop-game', players);
-        }
-    });
-
-    socket.on('disconnect', () => {
-        delete players[socket.id];
-        io.emit('update-player-list', Object.values(players));
-    });
+socket.on('basta', (answers) => {
+    if (gameState === 'PLAYING') {
+        gameState = 'VALIDATING';
+        players[socket.id].answers = answers; // Guardar respuestas del que terminó
+        
+        // En un escenario real, aquí pedirías las respuestas a los demás
+        // Por ahora, calculamos con lo que llegó y mandamos a validar
+        calculateScores(); 
+        io.emit('show-validation', players);
+    }
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Servidor en puerto ${PORT}`));
+// Evento para invalidar palabra manualmente desde la TV
+socket.on('invalidate-word', ({ playerId, category }) => {
+    if (players[playerId]) {
+        players[playerId].pointsDetail[category] = 0;
+        io.emit('update-validation-screen', players);
+    }
+});
