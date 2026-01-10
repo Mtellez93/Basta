@@ -8,34 +8,32 @@
         body { font-family: system-ui, sans-serif; padding: 20px; background: #f1f5f9; color: #1e293b; margin: 0; }
         .container { max-width: 400px; margin: 0 auto; }
         input { display: block; width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #cbd5e1; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; border-radius: 10px; border: none; font-weight: bold; font-size: 16px; cursor: pointer; }
+        button { width: 100%; padding: 15px; border-radius: 10px; border: none; font-weight: bold; font-size: 16px; cursor: pointer; margin-bottom: 10px; }
         .btn-join { background: #3b82f6; color: white; }
-        .btn-host { background: #10b981; color: white; margin-top: 15px; }
-        .btn-basta { background: #ef4444; color: white; font-size: 20px; margin-top: 20px; box-shadow: 0 4px 0 #b91c1c; }
-        .btn-basta:active { box-shadow: none; transform: translateY(4px); }
-        .cat-label { font-size: 12px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-top: 10px; }
-        #host-controls { background: #dcfce7; padding: 15px; border-radius: 10px; border: 2px solid #10b981; margin-top: 20px; text-align: center; }
+        .btn-host { background: #10b981; color: white; }
+        .btn-reset { background: #6366f1; color: white; margin-top: 20px; }
+        .btn-basta { background: #ef4444; color: white; font-size: 20px; margin-top: 10px; box-shadow: 0 4px 0 #b91c1c; }
+        .cat-label { font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-top: 8px; }
+        #host-section { display: none; background: #fff; padding: 15px; border-radius: 10px; border: 2px solid #10b981; margin-top: 20px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div id="setup-view">
-            <h2 id="status-title">Unirse al Juego</h2>
+            <h2 id="title">Unirse</h2>
             <div id="join-form">
-                <input type="text" id="player-name" placeholder="Tu nombre o apodo">
-                <button class="btn-join" onclick="join()">CONECTAR AL JUEGO</button>
+                <input type="text" id="player-name" placeholder="Tu nombre">
+                <button class="btn-join" onclick="join()">CONECTAR</button>
             </div>
-            
-            <div id="host-controls" style="display:none;">
-                <p style="color: #166534; font-weight: bold; margin: 0 0 10px 0;">🌟 Eres el Administrador</p>
-                <button class="btn-host" onclick="socket.emit('start-game')">INICIAR PARTIDA</button>
+            <div id="host-section">
+                <p style="color: #166534; font-weight: bold; margin-bottom: 10px;">👑 Controles de Administrador</p>
+                <button id="btn-start" class="btn-host" onclick="socket.emit('start-game')">INICIAR PARTIDA</button>
             </div>
-            
-            <p id="wait-msg" style="display:none; text-align:center; color: #64748b;">Esperando a que el host inicie...</p>
+            <p id="wait-msg" style="display:none; text-align:center; color: #64748b;">Esperando inicio del host...</p>
         </div>
 
         <div id="game-view" style="display:none;">
-            <h2 id="current-letter" style="text-align:center; color:#3b82f6; font-size: 2rem; margin: 10px 0;"></h2>
+            <h2 id="current-letter" style="text-align:center; color:#3b82f6;"></h2>
             <div class="cat-label">Nombre</div><input type="text" id="nombre" autocomplete="off">
             <div class="cat-label">Apellido</div><input type="text" id="apellido" autocomplete="off">
             <div class="cat-label">Animal</div><input type="text" id="animal" autocomplete="off">
@@ -45,11 +43,13 @@
             <button class="btn-basta" onclick="enviarBasta()">¡BASTA!</button>
         </div>
 
-        <div id="wait-view" style="display:none; text-align:center; margin-top: 50px;">
-            <h3 id="wait-title">¡TIEMPO!</h3>
-            <p>Revisen los resultados en la TV.</p>
-            <div id="host-next" style="display:none; margin-top: 30px;">
-                <button class="btn-host" onclick="socket.emit('next-round-action')">SIGUIENTE RONDA</button>
+        <div id="wait-view" style="display:none; text-align:center;">
+            <h3>Revisando en TV...</h3>
+            <div id="host-after-game" style="display:none;">
+                <button class="btn-host" onclick="socket.emit('next-round-action')">CONTINUAR / SIGUIENTE</button>
+                <div id="reset-container" style="display:none;">
+                    <button class="btn-reset" onclick="socket.emit('reset-game')">🔄 NUEVA PARTIDA (REINICIAR TODO)</button>
+                </div>
             </div>
         </div>
     </div>
@@ -60,31 +60,23 @@
         let soyHost = false;
         const cats = ['nombre', 'apellido', 'animal', 'ciudad', 'color', 'fruto'];
 
-        // Escuchar asignación de rol
         socket.on('assign-role', (data) => { 
             soyHost = data.isHost;
-            // Si ya estamos conectados, mostrar controles de host inmediatamente
-            actualizarUIHost();
+            if(soyHost && document.getElementById('join-form').style.display === 'none') {
+                document.getElementById('host-section').style.display = 'block';
+            }
         });
 
         function join() {
             const name = document.getElementById('player-name').value;
-            if(!name) { alert("Escribe tu nombre"); return; }
-            
+            if(!name) return;
             socket.emit('join-game', name);
-            
-            // UI post-registro
-            document.getElementById('status-title').innerText = "¡Listo, " + name + "!";
+            document.getElementById('title').innerText = "¡Hola " + name + "!";
             document.getElementById('join-form').style.display = 'none';
-            document.getElementById('wait-msg').style.display = 'block';
-            actualizarUIHost();
-        }
-
-        function actualizarUIHost() {
-            const joinFormHidden = document.getElementById('join-form').style.display === 'none';
-            if(soyHost && joinFormHidden) {
-                document.getElementById('host-controls').style.display = 'block';
-                document.getElementById('wait-msg').style.display = 'none';
+            if(soyHost) {
+                document.getElementById('host-section').style.display = 'block';
+            } else {
+                document.getElementById('wait-msg').style.display = 'block';
             }
         }
 
@@ -93,37 +85,46 @@
             document.getElementById('wait-view').style.display = 'none';
             document.getElementById('game-view').style.display = 'block';
             document.getElementById('current-letter').innerText = "LETRA: " + data.letter;
-            // Limpiar inputs
             cats.forEach(c => document.getElementById(c).value = "");
         });
 
-        function getAnswers() {
+        function enviarBasta() {
             let answers = {};
             cats.forEach(c => answers[c] = document.getElementById(c).value);
-            return answers;
-        }
-
-        function enviarBasta() {
-            socket.emit('basta', getAnswers());
+            socket.emit('basta', answers);
         }
 
         socket.on('force-submit', () => {
-            socket.emit('submit-final-answers', getAnswers());
+            let answers = {};
+            cats.forEach(c => answers[c] = document.getElementById(c).value);
+            socket.emit('submit-final-answers', answers);
             mostrarEspera();
         });
 
-        socket.on('show-validation', () => {
-            mostrarEspera();
-        });
+        socket.on('show-validation', () => mostrarEspera());
 
         function mostrarEspera() {
             document.getElementById('game-view').style.display = 'none';
-            document.getElementById('setup-view').style.display = 'none';
             document.getElementById('wait-view').style.display = 'block';
             if(soyHost) {
-                document.getElementById('host-next').style.display = 'block';
+                document.getElementById('host-after-game').style.display = 'block';
+                document.getElementById('reset-container').style.display = 'none';
             }
         }
+
+        socket.on('game-over', () => {
+            document.getElementById('wait-view').querySelector('h3').innerText = "¡Juego Terminado!";
+            if(soyHost) {
+                document.getElementById('host-after-game').style.display = 'block';
+                document.getElementById('reset-container').style.display = 'block';
+                // Ocultamos el botón de siguiente ronda porque ya no hay más
+                document.querySelector('#host-after-game .btn-host').style.display = 'none';
+            }
+        });
+
+        socket.on('game-reset-complete', () => {
+            location.reload(); // Reinicia el mando para estar listo de nuevo
+        });
     </script>
 </body>
 </html>
