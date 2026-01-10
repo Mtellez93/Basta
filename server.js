@@ -14,12 +14,13 @@ let currentRound = 0;
 let totalRounds = 0;
 let gameState = 'LOBBY'; 
 let hostId = null;
+let timer = null;
+const ROUND_TIME = 60; // Segundos
 
 io.on('connection', (socket) => {
     
     socket.on('join-game', (name) => {
         if (!hostId) hostId = socket.id;
-
         players[socket.id] = { 
             id: socket.id, 
             name: name, 
@@ -28,7 +29,6 @@ io.on('connection', (socket) => {
             totalScore: 0,
             isHost: (socket.id === hostId)
         };
-        
         socket.emit('assign-role', { isHost: players[socket.id].isHost });
         io.emit('update-player-list', Object.values(players));
     });
@@ -37,7 +37,6 @@ io.on('connection', (socket) => {
         if (socket.id !== hostId) return;
         const ids = Object.keys(players);
         if (ids.length === 0) return;
-
         gameQueue = [...ids, ...ids]; 
         totalRounds = gameQueue.length;
         currentRound = 1;
@@ -54,20 +53,37 @@ io.on('connection', (socket) => {
             letter: letter,
             round: currentRound,
             totalRounds: totalRounds,
-            pickerName: players[currentPickerId].name
+            pickerName: players[currentPickerId].name,
+            timeLimit: ROUND_TIME
         });
+
+        // Iniciar temporizador
+        let timeLeft = ROUND_TIME;
+        if(timer) clearInterval(timer);
+        timer = setInterval(() => {
+            timeLeft--;
+            io.emit('timer-update', timeLeft);
+            if(timeLeft <= 0) {
+                finalizarRonda();
+            }
+        }, 1000);
+    }
+
+    function finalizarRonda() {
+        if (gameState !== 'PLAYING') return;
+        clearInterval(timer);
+        gameState = 'VALIDATING';
+        io.emit('force-submit');
+        setTimeout(() => {
+            calculateScores();
+            io.emit('show-validation', Object.values(players));
+        }, 1500);
     }
 
     socket.on('basta', (answers) => {
         if (gameState === 'PLAYING') {
-            gameState = 'VALIDATING';
             players[socket.id].answers = answers;
-            socket.broadcast.emit('force-submit');
-            
-            setTimeout(() => {
-                calculateScores();
-                io.emit('show-validation', Object.values(players));
-            }, 1200);
+            finalizarRonda();
         }
     });
 
@@ -76,6 +92,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('invalidate-word', ({ playerId, category }) => {
+        if (socket.id !== hostId) return;
         if (players[playerId]) {
             players[playerId].pointsDetail[category] = 0;
             io.emit('show-validation', Object.values(players));
@@ -83,6 +100,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('next-round-action', () => {
+        if (socket.id !== hostId) return;
         Object.values(players).forEach(p => {
             const roundSum = Object.values(p.pointsDetail).reduce((a, b) => a + b, 0);
             p.totalScore += roundSum;
@@ -99,17 +117,11 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Nueva lógica para reiniciar el juego completamente
     socket.on('reset-game', () => {
         if (socket.id !== hostId) return;
-        // Reiniciar puntajes de jugadores existentes
-        Object.values(players).forEach(p => {
-            p.totalScore = 0;
-            p.answers = {};
-            p.pointsDetail = {};
-        });
+        Object.values(players).forEach(p => { p.totalScore = 0; p.answers = {}; p.pointsDetail = {}; });
         gameState = 'LOBBY';
-        io.emit('game-reset-complete', Object.values(players));
+        io.emit('game-reset-complete');
     });
 
     socket.on('disconnect', () => {
@@ -131,14 +143,12 @@ io.on('connection', (socket) => {
 function calculateScores() {
     const categories = ['nombre', 'apellido', 'animal', 'ciudad', 'color', 'fruto'];
     const playerList = Object.values(players);
-
     categories.forEach(cat => {
         const counts = {};
         playerList.forEach(p => {
             const val = (p.answers[cat] || "").toLowerCase().trim();
             if (val) counts[val] = (counts[val] || 0) + 1;
         });
-
         playerList.forEach(p => {
             const val = (p.answers[cat] || "").toLowerCase().trim();
             if (!val) p.pointsDetail[cat] = 0;
@@ -148,5 +158,4 @@ function calculateScores() {
     });
 }
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Servidor en puerto ${PORT}`));
+server.listen(process.env.PORT || 3000);
