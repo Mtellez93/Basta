@@ -2,56 +2,76 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Basta - Jugador</title>
+    <title>Basta! Mando</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        input { display: block; width: 100%; margin-bottom: 10px; padding: 10px; box-sizing: border-box; }
-        #game-form { display: none; }
+        body { font-family: sans-serif; padding: 20px; background: #f4f4f9; }
+        input { display: block; width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; }
+        button { width: 100%; padding: 15px; border-radius: 8px; border: none; font-weight: bold; }
+        .btn-join { background: #4caf50; color: white; }
+        .btn-basta { background: #f44336; color: white; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <div id="login">
-        <input type="text" id="playerName" placeholder="Tu nombre">
-        <button onclick="join()">CONECTAR</button>
+    <div id="setup">
+        <input type="text" id="name" placeholder="Escribe tu nombre">
+        <button class="btn-join" onclick="join()">CONECTAR AL JUEGO</button>
     </div>
 
-    <div id="game-form">
-        <h2 id="letraDisplay"></h2>
+    <div id="game" style="display:none;">
+        <h2 id="letra"></h2>
         <input type="text" id="nombre" placeholder="Nombre">
+        <input type="text" id="apellido" placeholder="Apellido">
+        <input type="text" id="animal" placeholder="Animal">
+        <input type="text" id="ciudad" placeholder="Ciudad / País">
         <input type="text" id="color" placeholder="Color">
-        <input type="text" id="fruto" placeholder="Fruto/Flor">
-        <button onclick="basta()" style="background: red; color: white; padding: 20px; width: 100%;">¡BASTA!</button>
+        <input type="text" id="fruto" placeholder="Flor / Fruto">
+        <button class="btn-basta" onclick="enviarBasta()">¡BASTA!</button>
+    </div>
+
+    <div id="wait" style="display:none;">
+        <h3>¡Espera! Estamos validando...</h3>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
+        const cats = ['nombre', 'apellido', 'animal', 'ciudad', 'color', 'fruto'];
 
         function join() {
-            const name = document.getElementById('playerName').value;
-            if(name) {
-                socket.emit('join-game', name);
-                document.getElementById('login').innerHTML = "<h3>Conectado. Espera a que la TV inicie...</h3>";
+            const n = document.getElementById('name').value;
+            if(n) {
+                socket.emit('join-game', n);
+                document.getElementById('setup').innerHTML = "<h3>Conectado. Mira la TV...</h3>";
             }
         }
 
-        socket.on('game-started', (letter) => {
-            document.getElementById('login').style.display = 'none';
-            document.getElementById('game-form').style.display = 'block';
-            document.getElementById('letraDisplay').innerText = "LETRA: " + letter;
+        socket.on('round-started', (data) => {
+            document.getElementById('setup').style.display = 'none';
+            document.getElementById('wait').style.display = 'none';
+            document.getElementById('game').style.display = 'block';
+            document.getElementById('letra').innerText = "LETRA: " + data.letter;
+            cats.forEach(c => document.getElementById(c).value = "");
         });
 
-        function basta() {
-            const answers = {
-                nombre: document.getElementById('nombre').value,
-                color: document.getElementById('color').value,
-                fruto: document.getElementById('fruto').value
-            };
-            socket.emit('basta', answers);
+        function getAnswers() {
+            let a = {};
+            cats.forEach(c => a[c] = document.getElementById(c).value);
+            return a;
         }
 
-        socket.on('stop-game', () => {
-            document.getElementById('game-form').innerHTML = "<h3>¡TIEMPO! Validando en la TV...</h3>";
+        function enviarBasta() {
+            socket.emit('basta', getAnswers());
+        }
+
+        socket.on('force-submit', () => {
+            socket.emit('submit-final-answers', getAnswers());
+            document.getElementById('game').style.display = 'none';
+            document.getElementById('wait').style.display = 'block';
+        });
+
+        socket.on('show-validation', () => {
+            document.getElementById('game').style.display = 'none';
+            document.getElementById('wait').style.display = 'block';
         });
     </script>
 </body>
