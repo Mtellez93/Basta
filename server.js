@@ -15,7 +15,7 @@ let totalRounds = 0;
 let gameState = 'LOBBY'; 
 let hostId = null;
 let timer = null;
-const ROUND_TIME = 60; // Segundos
+const ROUND_TIME = 60; 
 
 io.on('connection', (socket) => {
     
@@ -57,7 +57,6 @@ io.on('connection', (socket) => {
             timeLimit: ROUND_TIME
         });
 
-        // Iniciar temporizador
         let timeLeft = ROUND_TIME;
         if(timer) clearInterval(timer);
         timer = setInterval(() => {
@@ -158,4 +157,5 @@ function calculateScores() {
     });
 }
 
-server.listen(process.env.PORT || 3000);
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`Servidor activo en puerto ${PORT}`));
