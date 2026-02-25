@@ -2,8 +2,9 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Basta Game</title>
+<title>Basta TV</title>
 <script src="/socket.io/socket.io.js"></script>
+
 <style>
 
 body {
@@ -20,12 +21,20 @@ button {
     cursor:pointer;
 }
 
+.hidden { display:none; }
+
+/* =======================
+   Selector bloqueado
+======================= */
 #round-selector-container.locked {
     opacity:0.5;
     pointer-events:none;
     transition:0.4s;
 }
 
+/* =======================
+   Barra progreso
+======================= */
 #progress-container {
     width:80%;
     margin:10px auto;
@@ -42,6 +51,9 @@ button {
     transition:0.4s;
 }
 
+/* =======================
+   Badge
+======================= */
 .badge {
     background:#22c55e;
     padding:6px 14px;
@@ -51,15 +63,15 @@ button {
     animation:pulse 1.5s infinite;
 }
 
-.hidden { display:none; }
-
 @keyframes pulse {
     0% { box-shadow:0 0 0px #22c55e; }
     50% { box-shadow:0 0 15px #22c55e; }
     100% { box-shadow:0 0 0px #22c55e; }
 }
 
-/* PODIO */
+/* =======================
+   PODIO
+======================= */
 
 #podium-overlay {
     position:fixed;
@@ -92,7 +104,12 @@ button {
     border-radius:8px 8px 0 0;
 }
 
-.first .box { height:160px; background:gold; box-shadow:0 0 25px gold; }
+.first .box {
+    height:160px;
+    background:gold;
+    box-shadow:0 0 25px gold;
+}
+
 .second .box { height:120px; background:silver; }
 .third .box { height:90px; background:#cd7f32; }
 
@@ -118,9 +135,7 @@ button {
 <div id="players"></div>
 
 <div id="round-selector-container">
-    <label>Rondas:
-        <span id="lock-icon">🔓</span>
-    </label>
+    <label>Rondas: <span id="lock-icon">🔓</span></label>
     <select id="round-selector">
         <option value="5">5</option>
         <option value="10" selected>10</option>
@@ -140,10 +155,13 @@ button {
     <div id="progress-bar"></div>
 </div>
 
+<!-- PODIO OCULTO POR DEFECTO -->
 <div id="podium-overlay" class="hidden">
     <div>
         <h1>🏆 RESULTADOS</h1>
+
         <div class="podium">
+
             <div class="place second">
                 <div id="second-name"></div>
                 <div id="second-score"></div>
@@ -162,7 +180,9 @@ button {
                 <div id="third-score"></div>
                 <div class="box">3°</div>
             </div>
+
         </div>
+
         <button onclick="closePodium()">Cerrar</button>
     </div>
 </div>
@@ -171,21 +191,25 @@ button {
 
 const socket = io();
 
+/* Seguridad: siempre ocultar podio al cargar */
+window.onload = () => {
+    document.getElementById("podium-overlay")
+        .classList.add("hidden");
+};
+
 function join(){
     const name = document.getElementById("name").value;
     socket.emit("join-game", name);
 }
 
-socket.on("update-player-list", list=>{
-    document.getElementById("players").innerHTML =
-        list.map(p=>`<div>${p.name}</div>`).join("");
-});
-
 function startGame(){
 
-    const rounds = parseInt(document.getElementById("round-selector").value);
+    const rounds =
+        parseInt(document.getElementById("round-selector").value);
 
-    document.getElementById("round-selector-container").classList.add("locked");
+    document.getElementById("round-selector-container")
+        .classList.add("locked");
+
     document.getElementById("round-selector").disabled = true;
     document.getElementById("start-button").disabled = true;
     document.getElementById("lock-icon").innerText="🔒";
@@ -201,34 +225,49 @@ socket.on("new-round", data=>{
     document.getElementById("letter").innerText =
         data.letter;
 
-    const percent = (data.round / data.totalRounds)*100;
-    document.getElementById("progress-bar").style.width = percent+"%";
+    const percent =
+        (data.round / data.totalRounds)*100;
+
+    document.getElementById("progress-bar")
+        .style.width = percent+"%";
 });
 
 socket.on("game-over", data=>{
 
-    const sorted = data.players.sort((a,b)=>b.totalScore-a.totalScore);
+    const sorted =
+        data.players.sort((a,b)=>b.totalScore-a.totalScore);
 
     if(sorted[0]){
-        first-name.innerText=sorted[0].name;
-        first-score.innerText=sorted[0].totalScore+" pts";
+        document.getElementById("first-name").innerText =
+            sorted[0].name;
+        document.getElementById("first-score").innerText =
+            sorted[0].totalScore+" pts";
     }
     if(sorted[1]){
-        second-name.innerText=sorted[1].name;
-        second-score.innerText=sorted[1].totalScore+" pts";
+        document.getElementById("second-name").innerText =
+            sorted[1].name;
+        document.getElementById("second-score").innerText =
+            sorted[1].totalScore+" pts";
     }
     if(sorted[2]){
-        third-name.innerText=sorted[2].name;
-        third-score.innerText=sorted[2].totalScore+" pts";
+        document.getElementById("third-name").innerText =
+            sorted[2].name;
+        document.getElementById("third-score").innerText =
+            sorted[2].totalScore+" pts";
     }
 
-    document.getElementById("podium-overlay").classList.remove("hidden");
+    document.getElementById("podium-overlay")
+        .classList.remove("hidden");
 });
 
 function closePodium(){
-    document.getElementById("podium-overlay").classList.add("hidden");
 
-    document.getElementById("round-selector-container").classList.remove("locked");
+    document.getElementById("podium-overlay")
+        .classList.add("hidden");
+
+    document.getElementById("round-selector-container")
+        .classList.remove("locked");
+
     document.getElementById("round-selector").disabled = false;
     document.getElementById("start-button").disabled = false;
     document.getElementById("lock-icon").innerText="🔓";
