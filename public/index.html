@@ -1,85 +1,242 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>BASTA TV - Tablero</title>
-    <style>
-        body { background: #0f172a; color: white; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
-        .grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; }
-        .card { background: #1e293b; border: 2px solid #38bdf8; border-radius: 12px; padding: 15px; width: 260px; }
-        .letter { font-size: 8rem; color: #facc15; margin: 10px 0; }
-        .timer { font-size: 2.5rem; color: #ef4444; font-weight: bold; }
-        .invalido { text-decoration: line-through; color: #ef4444; opacity: 0.5; }
-        .cat-row { display: flex; justify-content: space-between; font-size: 0.85rem; border-bottom: 1px solid #334155; margin: 5px 0; padding-bottom: 2px; }
-        h1 { color: #38bdf8; }
-    </style>
+<meta charset="UTF-8">
+<title>Basta Game</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+
+body {
+    font-family: Arial;
+    background:#111;
+    color:white;
+    text-align:center;
+}
+
+button {
+    padding:8px 16px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+}
+
+#round-selector-container.locked {
+    opacity:0.5;
+    pointer-events:none;
+    transition:0.4s;
+}
+
+#progress-container {
+    width:80%;
+    margin:10px auto;
+    background:#333;
+    height:18px;
+    border-radius:10px;
+    overflow:hidden;
+}
+
+#progress-bar {
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg,#60a5fa,#3b82f6);
+    transition:0.4s;
+}
+
+.badge {
+    background:#22c55e;
+    padding:6px 14px;
+    border-radius:20px;
+    display:inline-block;
+    margin:10px;
+    animation:pulse 1.5s infinite;
+}
+
+.hidden { display:none; }
+
+@keyframes pulse {
+    0% { box-shadow:0 0 0px #22c55e; }
+    50% { box-shadow:0 0 15px #22c55e; }
+    100% { box-shadow:0 0 0px #22c55e; }
+}
+
+/* PODIO */
+
+#podium-overlay {
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.9);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:999;
+}
+
+.podium {
+    display:flex;
+    gap:30px;
+    align-items:flex-end;
+}
+
+.place {
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+}
+
+.box {
+    width:100px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-weight:bold;
+    border-radius:8px 8px 0 0;
+}
+
+.first .box { height:160px; background:gold; box-shadow:0 0 25px gold; }
+.second .box { height:120px; background:silver; }
+.third .box { height:90px; background:#cd7f32; }
+
+.crown {
+    font-size:40px;
+    animation:crownBounce 1.2s infinite alternate;
+}
+
+@keyframes crownBounce {
+    from { transform:translateY(0px) rotate(-5deg); }
+    to { transform:translateY(-8px) rotate(5deg); }
+}
+
+</style>
 </head>
 <body>
-    <div id="lobby-view">
-        <h1>¡BASTA!</h1>
-        <p>Conéctense para iniciar la partida</p>
-        <div id="player-list" class="grid"></div>
-    </div>
 
-    <div id="game-view" style="display:none;">
-        <h2 id="round-info"></h2>
-        <div class="timer" id="timer-display">60</div>
-        <div class="letter" id="letter-display"></div>
-        <h3 id="picker-info"></h3>
-    </div>
+<h1>Basta</h1>
 
-    <div id="validation-view" style="display:none;">
-        <h1>Validando Respuestas...</h1>
-        <div id="validation-grid" class="grid"></div>
-    </div>
+<input id="name" placeholder="Nombre">
+<button onclick="join()">Unirse</button>
 
-    <div id="final-view" style="display:none;">
-        <h1>🏆 RESULTADOS FINALES 🏆</h1>
-        <div id="final-results" class="grid"></div>
-    </div>
+<div id="players"></div>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const socket = io();
-        socket.on('update-player-list', (list) => {
-            document.getElementById('player-list').innerHTML = list.map(p => `<div class="card"><h2>${p.name}</h2>${p.isHost ? '⭐ Host' : ''}</div>`).join('');
-        });
-        socket.on('round-started', (data) => {
-            document.getElementById('lobby-view').style.display = 'none';
-            document.getElementById('validation-view').style.display = 'none';
-            document.getElementById('final-view').style.display = 'none';
-            document.getElementById('game-view').style.display = 'block';
-            document.getElementById('letter-display').innerText = data.letter;
-            document.getElementById('round-info').innerText = `Ronda ${data.round} / ${data.totalRounds}`;
-        });
-        socket.on('timer-update', (t) => { document.getElementById('timer-display').innerText = t; });
-        socket.on('show-validation', (players) => {
-            document.getElementById('game-view').style.display = 'none';
-            document.getElementById('validation-view').style.display = 'block';
-            document.getElementById('validation-grid').innerHTML = players.map(p => `
-                <div class="card">
-                    <h3>${p.name}</h3>
-                    ${['nombre','apellido','animal','ciudad','color','fruto'].map(cat => `
-                        <div class="cat-row ${p.pointsDetail[cat]===0?'invalido':''}">
-                            <span>${cat}: ${p.answers[cat]||'-'}</span>
-                            <span>${p.pointsDetail[cat]}pts</span>
-                        </div>
-                    `).join('')}
-                </div>
-            `).join('');
-        });
-        socket.on('game-over', (res) => {
-            document.getElementById('validation-view').style.display = 'none';
-            document.getElementById('final-view').style.display = 'block';
-            document.getElementById('final-results').innerHTML = res.map(p => `
-                <div class="card">
-                    <h2>${p.name}</h2>
-                    <h1 style="color:#4ade80">${p.totalScore}</h1>
-                    <p>PUNTOS TOTALES</p>
-                </div>
-            `).join('');
-        });
-        socket.on('game-reset-complete', () => location.reload());
-    </script>
+<div id="round-selector-container">
+    <label>Rondas:
+        <span id="lock-icon">🔓</span>
+    </label>
+    <select id="round-selector">
+        <option value="5">5</option>
+        <option value="10" selected>10</option>
+        <option value="15">15</option>
+        <option value="20">20</option>
+    </select>
+</div>
+
+<button id="start-button" onclick="startGame()">Iniciar Juego</button>
+
+<div id="badge" class="badge hidden">🎮 SET EN CURSO</div>
+
+<h2 id="round-info"></h2>
+<h1 id="letter"></h1>
+
+<div id="progress-container">
+    <div id="progress-bar"></div>
+</div>
+
+<div id="podium-overlay" class="hidden">
+    <div>
+        <h1>🏆 RESULTADOS</h1>
+        <div class="podium">
+            <div class="place second">
+                <div id="second-name"></div>
+                <div id="second-score"></div>
+                <div class="box">2°</div>
+            </div>
+
+            <div class="place first">
+                <div class="crown">👑</div>
+                <div id="first-name"></div>
+                <div id="first-score"></div>
+                <div class="box">1°</div>
+            </div>
+
+            <div class="place third">
+                <div id="third-name"></div>
+                <div id="third-score"></div>
+                <div class="box">3°</div>
+            </div>
+        </div>
+        <button onclick="closePodium()">Cerrar</button>
+    </div>
+</div>
+
+<script>
+
+const socket = io();
+
+function join(){
+    const name = document.getElementById("name").value;
+    socket.emit("join-game", name);
+}
+
+socket.on("update-player-list", list=>{
+    document.getElementById("players").innerHTML =
+        list.map(p=>`<div>${p.name}</div>`).join("");
+});
+
+function startGame(){
+
+    const rounds = parseInt(document.getElementById("round-selector").value);
+
+    document.getElementById("round-selector-container").classList.add("locked");
+    document.getElementById("round-selector").disabled = true;
+    document.getElementById("start-button").disabled = true;
+    document.getElementById("lock-icon").innerText="🔒";
+    document.getElementById("badge").classList.remove("hidden");
+
+    socket.emit("start-game",{rounds});
+}
+
+socket.on("new-round", data=>{
+    document.getElementById("round-info").innerText =
+        `Ronda ${data.round} / ${data.totalRounds}`;
+
+    document.getElementById("letter").innerText =
+        data.letter;
+
+    const percent = (data.round / data.totalRounds)*100;
+    document.getElementById("progress-bar").style.width = percent+"%";
+});
+
+socket.on("game-over", data=>{
+
+    const sorted = data.players.sort((a,b)=>b.totalScore-a.totalScore);
+
+    if(sorted[0]){
+        first-name.innerText=sorted[0].name;
+        first-score.innerText=sorted[0].totalScore+" pts";
+    }
+    if(sorted[1]){
+        second-name.innerText=sorted[1].name;
+        second-score.innerText=sorted[1].totalScore+" pts";
+    }
+    if(sorted[2]){
+        third-name.innerText=sorted[2].name;
+        third-score.innerText=sorted[2].totalScore+" pts";
+    }
+
+    document.getElementById("podium-overlay").classList.remove("hidden");
+});
+
+function closePodium(){
+    document.getElementById("podium-overlay").classList.add("hidden");
+
+    document.getElementById("round-selector-container").classList.remove("locked");
+    document.getElementById("round-selector").disabled = false;
+    document.getElementById("start-button").disabled = false;
+    document.getElementById("lock-icon").innerText="🔓";
+    document.getElementById("badge").classList.add("hidden");
+    document.getElementById("progress-bar").style.width="0%";
+}
+
+</script>
+
 </body>
 </html>
