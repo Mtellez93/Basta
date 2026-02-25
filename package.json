@@ -1,13 +1,17 @@
 {
-  "name": "basta-multiplayer",
+  "name": "basta-game",
   "version": "1.0.0",
-  "description": "Juego de Basta para TV y Celulares",
-  "main": "server.js",
+  "description": "Juego multiplayer de Basta con reconexión",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
     "socket.io": "^4.7.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
   }
 }
