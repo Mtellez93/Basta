@@ -4,7 +4,10 @@ const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+
+const io = new Server(server, {
+  cors: { origin: "*" }
+});
 
 app.use(express.static("public"));
 
@@ -15,23 +18,37 @@ let currentRound = 0;
 let totalRounds = 10;
 let currentLetter = null;
 let usedLetters = [];
+let gameInProgress = false;
 
+/* =========================
+   LETRAS SIN REPETIR
+========================= */
 function getRandomLetter() {
     const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
     const available = letters.filter(l => !usedLetters.includes(l));
 
     if (available.length === 0) return null;
 
-    const letter = available[Math.floor(Math.random() * available.length)];
+    const letter =
+        available[Math.floor(Math.random() * available.length)];
+
     usedLetters.push(letter);
     return letter;
 }
 
+/* =========================
+   INICIAR RONDA
+========================= */
 function startRound() {
+
     if (currentRound > totalRounds) {
+
+        gameInProgress = false;
+
         io.emit("game-over", {
             players: Object.values(players)
         });
+
         return;
     }
 
@@ -50,6 +67,9 @@ function startRound() {
     });
 }
 
+/* =========================
+   SOCKET
+========================= */
 io.on("connection", (socket) => {
 
     socket.on("join-game", (name) => {
@@ -65,6 +85,7 @@ io.on("connection", (socket) => {
     });
 
     socket.on("set-host", (id) => {
+
         Object.values(players).forEach(p => p.isHost = false);
 
         if (players[id]) {
@@ -75,26 +96,31 @@ io.on("connection", (socket) => {
         io.emit("update-player-list", Object.values(players));
     });
 
-    socket.on("start-game", (config) => {
+    socket.on("start-game", (config = {}) => {
 
         if (socket.id !== hostId) return;
+        if (gameInProgress) return;
 
         const allowed = [5,10,15,20];
-        totalRounds = allowed.includes(config.rounds) ? config.rounds : 10;
+        totalRounds = allowed.includes(config.rounds)
+            ? config.rounds
+            : 10;
 
         usedLetters = [];
         currentRound = 1;
+        gameInProgress = true;
 
         startRound();
     });
 
     socket.on("next-round", () => {
-
+        if (!gameInProgress) return;
         currentRound++;
         startRound();
     });
 
     socket.on("add-score", ({playerId, points}) => {
+
         if (players[playerId]) {
             players[playerId].totalScore += points;
         }
@@ -110,9 +136,8 @@ io.on("connection", (socket) => {
         delete players[socket.id];
         io.emit("update-player-list", Object.values(players));
     });
-
 });
 
-server.listen(3000, () => {
-    console.log("Server running on port 3000");
+server.listen(process.env.PORT || 3000, () => {
+    console.log("Server running");
 });
