@@ -14,6 +14,7 @@ class GameState {
     this.config = { ...DEFAULT_CONFIG };
     this.gameStarted = false;
     this.currentRound = null;
+    this.timer = null;
   }
 
   addOrReconnectPlayer({ playerId, socketId, name }) {
@@ -47,26 +48,18 @@ class GameState {
   }
 
   startGame(config = {}) {
-    if (this.players.size === 0) return false;
-
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.gameStarted = true;
     this.usedLetters.clear();
-    this.nextLetter();
-    return true;
+    return this.nextLetter();
   }
 
   nextLetter() {
-    const letters = LETTER_SETS[this.config.language] || LETTER_SETS.es;
-    const available = letters
-      .split("")
-      .filter(l => !this.usedLetters.has(l));
-
+    const letters = LETTER_SETS[this.config.language];
+    const available = letters.split("").filter(l => !this.usedLetters.has(l));
     if (!available.length) return null;
 
-    const random =
-      available[Math.floor(Math.random() * available.length)];
-
+    const random = available[Math.floor(Math.random() * available.length)];
     this.usedLetters.add(random);
     this.currentLetter = random;
 
@@ -74,53 +67,102 @@ class GameState {
       letter: random,
       submissions: new Map(),
       validations: new Map(),
-      decisions: new Map()
+      votes: new Map(),
+      phase: "playing",
+      endTime: Date.now() + this.config.roundTime * 1000
     };
 
     return random;
   }
 
+  isRoundActive() {
+    return this.currentRound && this.currentRound.phase === "playing";
+  }
+
   submitAnswers(playerId, answers) {
-    if (!this.currentRound) return;
+    if (!this.isRoundActive()) return;
 
     this.currentRound.submissions.set(playerId, answers);
-
-    const flagged = this.validateAnswers(answers);
-    this.currentRound.validations.set(playerId, flagged);
+    this.validateAll();
   }
 
-  validateAnswers(answers) {
-    const flagged = {};
+  validateAll() {
     const letter = this.currentLetter;
+    const validations = new Map();
 
-    Object.entries(answers).forEach(([category, word]) => {
-      if (!word || word.trim() === "") {
-        flagged[category] = "Vacío";
-        return;
+    const categoryMap = {};
+
+    for (const [pid, answers] of this.currentRound.submissions.entries()) {
+      for (const [cat, word] of Object.entries(answers)) {
+        if (!categoryMap[cat]) categoryMap[cat] = {};
+        const key = word?.toLowerCase();
+        if (!categoryMap[cat][key]) categoryMap[cat][key] = [];
+        categoryMap[cat][key].push(pid);
+      }
+    }
+
+    for (const [pid, answers] of this.currentRound.submissions.entries()) {
+      const flagged = {};
+
+      for (const [cat, word] of Object.entries(answers)) {
+        if (!word || word.trim() === "") {
+          flagged[cat] = "Vacío";
+          continue;
+        }
+
+        if (word[0].toUpperCase() !== letter) {
+          flagged[cat] = "Letra incorrecta";
+          continue;
+        }
+
+        if (categoryMap[cat][word.toLowerCase()].length > 1) {
+          flagged[cat] = "Duplicado";
+        }
       }
 
-      if (
-        word[0].toUpperCase() !== letter.toUpperCase()
-      ) {
-        flagged[category] = "Letra incorrecta";
-      }
-    });
+      validations.set(pid, flagged);
+    }
 
-    return flagged;
+    this.currentRound.validations = validations;
   }
 
-  hostDecision(playerId, approvedCategories) {
-    this.currentRound.decisions.set(
-      playerId,
-      approvedCategories
-    );
+  startVoting() {
+    if (!this.currentRound) return;
+    this.currentRound.phase = "voting";
+  }
+
+  vote(voterId, targetId, category, approve) {
+    if (!this.currentRound) return;
+
+    const key = `${targetId}:${category}`;
+    if (!this.currentRound.votes.has(key))
+      this.currentRound.votes.set(key, []);
+
+    this.currentRound.votes.get(key).push({
+      voterId,
+      approve
+    });
   }
 
   finalizeRound() {
-    for (const [playerId, approved] of this.currentRound.decisions.entries()) {
-      const points = approved.length * 10;
-      const player = this.players.get(playerId);
-      if (player) player.score += points;
+    const totalPlayers = this.players.size;
+
+    for (const [pid, answers] of this.currentRound.submissions.entries()) {
+      let points = 0;
+
+      for (const [cat, word] of Object.entries(answers)) {
+        const key = `${pid}:${cat}`;
+        const votes = this.currentRound.votes.get(key) || [];
+
+        const approves = votes.filter(v => v.approve).length;
+
+        if (approves > totalPlayers / 2) {
+          const flag = this.currentRound.validations.get(pid)?.[cat];
+          points += flag === "Duplicado" ? 5 : 10;
+        }
+      }
+
+      this.players.get(pid).score += points;
     }
 
     this.currentRound = null;
@@ -143,7 +185,11 @@ class GameState {
       letter: this.currentRound.letter,
       submissions: Object.fromEntries(this.currentRound.submissions),
       validations: Object.fromEntries(this.currentRound.validations),
-      decisions: Object.fromEntries(this.currentRound.decisions)
+      phase: this.currentRound.phase,
+      timeLeft: Math.max(
+        0,
+        Math.floor((this.currentRound.endTime - Date.now()) / 1000)
+      )
     };
   }
 }
