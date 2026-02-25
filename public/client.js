@@ -39,3 +39,12 @@ socket.on("update-state", state => {
     playersList.appendChild(li);
   });
 });
+function submitAnswers() {
+  const answers = {
+    nombre: document.getElementById("nombre").value,
+    ciudad: document.getElementById("ciudad").value,
+    animal: document.getElementById("animal").value
+  };
+
+  socket.emit("submit-answers", answers);
+}
