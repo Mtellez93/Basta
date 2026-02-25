@@ -13,6 +13,7 @@ class GameState {
     this.currentLetter = null;
     this.config = { ...DEFAULT_CONFIG };
     this.gameStarted = false;
+    this.currentRound = null;
   }
 
   addOrReconnectPlayer({ playerId, socketId, name }) {
@@ -38,27 +39,11 @@ class GameState {
     this.socketMap.set(socketId, playerId);
 
     if (!this.hostId) this.hostId = playerId;
-
     return true;
   }
 
-  markDisconnected(socketId) {
-    const playerId = this.socketMap.get(socketId);
-    if (!playerId) return;
-
-    const player = this.players.get(playerId);
-    if (player) player.connected = false;
-
-    this.socketMap.delete(socketId);
-  }
-
-  removePlayer(playerId) {
-    this.players.delete(playerId);
-
-    if (this.hostId === playerId) {
-      const next = this.players.keys().next();
-      this.hostId = next.done ? null : next.value;
-    }
+  getPlayerIdBySocket(socketId) {
+    return this.socketMap.get(socketId);
   }
 
   startGame(config = {}) {
@@ -75,28 +60,70 @@ class GameState {
     const letters = LETTER_SETS[this.config.language] || LETTER_SETS.es;
     const available = letters
       .split("")
-      .filter(letter => !this.usedLetters.has(letter));
+      .filter(l => !this.usedLetters.has(l));
 
-    if (available.length === 0) {
-      this.currentLetter = null;
-      return null;
-    }
+    if (!available.length) return null;
 
-    const random = available[Math.floor(Math.random() * available.length)];
+    const random =
+      available[Math.floor(Math.random() * available.length)];
 
     this.usedLetters.add(random);
     this.currentLetter = random;
+
+    this.currentRound = {
+      letter: random,
+      submissions: new Map(),
+      validations: new Map(),
+      decisions: new Map()
+    };
+
     return random;
   }
 
-  addScore(playerId, points) {
-    const player = this.players.get(playerId);
-    if (!player) return;
-    player.score += points;
+  submitAnswers(playerId, answers) {
+    if (!this.currentRound) return;
+
+    this.currentRound.submissions.set(playerId, answers);
+
+    const flagged = this.validateAnswers(answers);
+    this.currentRound.validations.set(playerId, flagged);
   }
 
-  getPlayerIdBySocket(socketId) {
-    return this.socketMap.get(socketId);
+  validateAnswers(answers) {
+    const flagged = {};
+    const letter = this.currentLetter;
+
+    Object.entries(answers).forEach(([category, word]) => {
+      if (!word || word.trim() === "") {
+        flagged[category] = "Vacío";
+        return;
+      }
+
+      if (
+        word[0].toUpperCase() !== letter.toUpperCase()
+      ) {
+        flagged[category] = "Letra incorrecta";
+      }
+    });
+
+    return flagged;
+  }
+
+  hostDecision(playerId, approvedCategories) {
+    this.currentRound.decisions.set(
+      playerId,
+      approvedCategories
+    );
+  }
+
+  finalizeRound() {
+    for (const [playerId, approved] of this.currentRound.decisions.entries()) {
+      const points = approved.length * 10;
+      const player = this.players.get(playerId);
+      if (player) player.score += points;
+    }
+
+    this.currentRound = null;
   }
 
   getState() {
@@ -104,8 +131,19 @@ class GameState {
       players: Array.from(this.players.values()),
       hostId: this.hostId,
       currentLetter: this.currentLetter,
-      gameStarted: this.gameStarted,
-      config: this.config
+      currentRound: this.serializeRound(),
+      gameStarted: this.gameStarted
+    };
+  }
+
+  serializeRound() {
+    if (!this.currentRound) return null;
+
+    return {
+      letter: this.currentRound.letter,
+      submissions: Object.fromEntries(this.currentRound.submissions),
+      validations: Object.fromEntries(this.currentRound.validations),
+      decisions: Object.fromEntries(this.currentRound.decisions)
     };
   }
 }
