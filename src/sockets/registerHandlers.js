@@ -1,7 +1,5 @@
 function registerHandlers(io, socket, game) {
   socket.on("join-game", ({ playerId, name }) => {
-    if (!playerId || typeof playerId !== "string") return;
-
     game.addOrReconnectPlayer({
       playerId,
       socketId: socket.id,
@@ -11,12 +9,11 @@ function registerHandlers(io, socket, game) {
     io.emit("update-state", game.getState());
   });
 
-  socket.on("start-game", config => {
+  socket.on("start-game", () => {
     const playerId = game.getPlayerIdBySocket(socket.id);
     if (playerId !== game.hostId) return;
 
-    if (!game.startGame(config)) return;
-
+    game.startGame();
     io.emit("update-state", game.getState());
   });
 
@@ -24,37 +21,31 @@ function registerHandlers(io, socket, game) {
     const playerId = game.getPlayerIdBySocket(socket.id);
     if (playerId !== game.hostId) return;
 
-    const letter = game.nextLetter();
-    if (!letter) {
-      io.emit("game-ended");
-      return;
-    }
-
+    game.nextLetter();
     io.emit("update-state", game.getState());
   });
 
-  socket.on("add-score", points => {
-    if (typeof points !== "number") return;
-
+  socket.on("submit-answers", answers => {
     const playerId = game.getPlayerIdBySocket(socket.id);
-    if (!playerId) return;
+    game.submitAnswers(playerId, answers);
 
-    game.addScore(playerId, points);
     io.emit("update-state", game.getState());
   });
 
-  socket.on("disconnect", () => {
-    game.markDisconnected(socket.id);
+  socket.on("host-decision", ({ playerId, approved }) => {
+    const senderId = game.getPlayerIdBySocket(socket.id);
+    if (senderId !== game.hostId) return;
 
-    setTimeout(() => {
-      for (const [playerId, player] of game.players.entries()) {
-        if (!player.connected) {
-          game.removePlayer(playerId);
-        }
-      }
+    game.hostDecision(playerId, approved);
+    io.emit("update-state", game.getState());
+  });
 
-      io.emit("update-state", game.getState());
-    }, 30000);
+  socket.on("finalize-round", () => {
+    const senderId = game.getPlayerIdBySocket(socket.id);
+    if (senderId !== game.hostId) return;
+
+    game.finalizeRound();
+    io.emit("update-state", game.getState());
   });
 }
 
