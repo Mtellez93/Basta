@@ -22,7 +22,7 @@ socket.on("room-created", code => {
   qr.innerHTML = "";
 
   new QRCode(qr, {
-    text: window.location.origin + "/mobile.html?room=" + code,
+    text: window.location.origin + "/mobil.html?room=" + code,
     width: 150,
     height: 150
   });
