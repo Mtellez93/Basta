@@ -10,24 +10,32 @@
 <div class="container">
   <h1 class="title">BASTA</h1>
 
-  <button onclick="createRoom()">Crear Sala</button>
+  <div id="lobby">
+    <button onclick="createRoom()">Crear Sala</button>
+    <h2 id="roomCode"></h2>
+    <div id="qr"></div>
 
-  <h2 id="roomCode"></h2>
-
-  <div class="letter-box">
-    <span id="letter">-</span>
-  </div>
-
-  <div class="timer">
-    ⏱ <span id="timer">0</span>s
-  </div>
-
-  <div class="players">
+    <h3>Jugadores en sala</h3>
     <ul id="playersList"></ul>
+
+    <button id="startBtn" onclick="startGame()" style="display:none;">
+      Iniciar Juego
+    </button>
+  </div>
+
+  <div id="gameArea" style="display:none;">
+    <div class="letter-box">
+      <span id="letter">-</span>
+    </div>
+
+    <div class="timer">
+      ⏱ <span id="timer">0</span>s
+    </div>
   </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="board.js"></script>
 </body>
 </html>
