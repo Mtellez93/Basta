@@ -1,9 +1,8 @@
 body {
   margin: 0;
-  font-family: 'Segoe UI', sans-serif;
+  font-family: Arial, sans-serif;
   background: linear-gradient(135deg, #4f46e5, #9333ea);
   color: white;
-  overflow-x: hidden;
 }
 
 .container {
@@ -12,113 +11,54 @@ body {
 }
 
 .title {
-  font-size: 5rem;
-  font-weight: 900;
-  letter-spacing: 10px;
-  animation: pop 0.6s ease;
-}
-
-.letter-box {
-  font-size: 8rem;
-  margin: 30px auto;
-  background: white;
-  color: #4f46e5;
-  width: 220px;
-  height: 220px;
-  border-radius: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 4rem;
   font-weight: bold;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-  animation: bounce 1s infinite alternate;
-}
-
-.timer {
-  font-size: 2.5rem;
-  margin: 10px;
-}
-
-.phase {
-  font-size: 1.5rem;
-  margin-bottom: 20px;
-  text-transform: uppercase;
-  opacity: 0.9;
-}
-
-.players ul {
-  list-style: none;
-  padding: 0;
-  margin-top: 20px;
-}
-
-.players li {
-  padding: 12px;
-  margin: 8px auto;
-  width: 60%;
-  border-radius: 12px;
-  font-weight: bold;
-  background: rgba(255,255,255,0.2);
-  transition: transform 0.3s ease;
-}
-
-.players li:hover {
-  transform: scale(1.05);
 }
 
 button {
-  padding: 14px 25px;
-  border-radius: 30px;
+  padding: 12px 20px;
+  border-radius: 20px;
   border: none;
   background: #facc15;
-  color: #111;
+  color: black;
   font-weight: bold;
-  cursor: pointer;
   margin: 10px;
-  transition: all 0.3s ease;
-}
-
-button:hover {
-  transform: scale(1.1);
-  background: #fde047;
+  cursor: pointer;
 }
 
 input {
-  padding: 12px;
+  padding: 10px;
   width: 80%;
-  border-radius: 10px;
+  border-radius: 8px;
   border: none;
   margin: 10px auto;
   display: block;
 }
 
-.result-screen {
-  position: fixed;
-  inset: 0;
-  background: #111827;
+.letter-box {
+  font-size: 6rem;
+  margin: 30px auto;
+  background: white;
+  color: #4f46e5;
+  width: 200px;
+  height: 200px;
+  border-radius: 30px;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
-  animation: fadeIn 0.5s ease;
+  justify-content: center;
 }
 
-.result-screen h1 {
-  font-size: 4rem;
-  color: #facc15;
+#reviewSection {
+  margin-top: 30px;
 }
 
-@keyframes bounce {
-  from { transform: translateY(0); }
-  to { transform: translateY(-20px); }
+.review-card {
+  background: rgba(255,255,255,0.2);
+  padding: 15px;
+  margin: 10px;
+  border-radius: 10px;
 }
 
-@keyframes pop {
-  from { transform: scale(0.5); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.review-card h3 {
+  margin-top: 0;
 }
