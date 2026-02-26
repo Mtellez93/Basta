@@ -1,35 +1,94 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-  <title>Basta - Jugador</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
+const socket = io();
+let currentRoom = null;
 
-<div class="container">
-  <h1>Entrar a Sala</h1>
+function getPlayerId() {
+  let id = localStorage.getItem("playerId");
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem("playerId", id);
+  }
+  return id;
+}
 
-  <input id="roomInput" placeholder="Código de sala" />
-  <input id="nameInput" placeholder="Tu nombre" />
-  <button onclick="joinRoom()">Entrar</button>
+function saveRoom(roomCode) {
+  localStorage.setItem("roomCode", roomCode);
+}
 
-  <div id="lobby" style="display:none;">
-    <h2>Esperando a que el host inicie...</h2>
-  </div>
+function getSavedRoom() {
+  return localStorage.getItem("roomCode");
+}
 
-  <div id="gameArea" style="display:none;">
-    <h2>Letra: <span id="letter"></span></h2>
+window.onload = () => {
+  const params = new URLSearchParams(window.location.search);
+  const roomFromQR = params.get("room");
 
-    <input id="nombre" placeholder="Nombre" />
-    <input id="ciudad" placeholder="Ciudad" />
-    <input id="animal" placeholder="Animal" />
+  const savedRoom = getSavedRoom();
 
-    <button onclick="submitAnswers()">Enviar</button>
-  </div>
-</div>
+  const roomCode = roomFromQR || savedRoom;
 
-<script src="/socket.io/socket.io.js"></script>
-<script src="mobile.js"></script>
-</body>
-</html>
+  if (roomCode) {
+    document.getElementById("roomInput").value = roomCode;
+    currentRoom = roomCode;
+  }
+};
+
+function joinRoom() {
+  const roomCode = document
+    .getElementById("roomInput").value
+    .toUpperCase();
+
+  const name = document.getElementById("nameInput").value;
+
+  if (!roomCode || !name) return;
+
+  currentRoom = roomCode;
+  saveRoom(roomCode);
+
+  socket.emit("join-room", {
+    roomCode,
+    playerId: getPlayerId(),
+    name
+  });
+
+  document.getElementById("lobby").style.display =
+    "block";
+}
+
+function submitAnswers() {
+  const answers = {
+    nombre: document.getElementById("nombre").value,
+    ciudad: document.getElementById("ciudad").value,
+    animal: document.getElementById("animal").value
+  };
+
+  socket.emit("submit-answers", {
+    roomCode: currentRoom,
+    answers
+  });
+}
+
+socket.on("update-state", state => {
+  if (state.gameStarted) {
+    document.getElementById("lobby").style.display =
+      "none";
+    document.getElementById("gameArea").style.display =
+      "block";
+
+    document.getElementById("letter").innerText =
+      state.currentLetter || "-";
+  }
+});
+
+socket.on("connect", () => {
+  const savedRoom = getSavedRoom();
+  const playerId = getPlayerId();
+  const name = document.getElementById("nameInput").value;
+
+  if (savedRoom && playerId && name) {
+    socket.emit("join-room", {
+      roomCode: savedRoom,
+      playerId,
+      name
+    });
+  }
+});
