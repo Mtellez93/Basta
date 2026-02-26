@@ -32,7 +32,6 @@ class GameState {
     if (this.players.has(playerId)) {
       const player = this.players.get(playerId);
       player.socketId = socketId;
-      player.connected = true;
       this.socketMap.set(socketId, playerId);
       return true;
     }
@@ -41,8 +40,7 @@ class GameState {
       playerId,
       socketId,
       name: name?.trim() || "Jugador",
-      score: 0,
-      connected: true
+      score: 0
     };
 
     this.players.set(playerId, player);
@@ -65,59 +63,109 @@ class GameState {
 
   nextLetter() {
     const letters = LETTER_SETS[this.config.language];
-    const available = letters.split("").filter(l => !this.usedLetters.has(l));
+    const available = letters
+      .split("")
+      .filter(l => !this.usedLetters.has(l));
+
     if (!available.length) return null;
 
-    const random = available[Math.floor(Math.random() * available.length)];
+    const random =
+      available[Math.floor(Math.random() * available.length)];
+
     this.usedLetters.add(random);
     this.currentLetter = random;
 
     this.currentRound = {
       letter: random,
       submissions: new Map(),
-      votes: new Map(),
-      phase: "playing",
-      endTime: Date.now() + this.config.roundTime * 1000
+      overrides: {},
+      phase: "playing"
     };
 
     return random;
   }
 
   submitAnswers(playerId, answers) {
-    if (!this.currentRound || this.currentRound.phase !== "playing") return;
+    if (!this.currentRound) return;
 
     const filtered = {};
-
     CATEGORIES.forEach(cat => {
-      filtered[cat] = answers[cat] || "";
+      filtered[cat] = (answers[cat] || "").trim();
     });
 
     this.currentRound.submissions.set(playerId, filtered);
   }
 
+  toggleOverride(playerId, category, approved) {
+    if (!this.currentRound) return;
+
+    if (!this.currentRound.overrides[playerId]) {
+      this.currentRound.overrides[playerId] = {};
+    }
+
+    this.currentRound.overrides[playerId][category] =
+      approved;
+  }
+
+  calculateScores() {
+    const submissions = this.currentRound.submissions;
+    const letter = this.currentLetter;
+    const overrides = this.currentRound.overrides;
+
+    const categoryMap = {};
+
+    for (const answers of submissions.values()) {
+      for (const cat of CATEGORIES) {
+        const word = answers[cat]?.toLowerCase();
+        if (!word) continue;
+
+        if (!categoryMap[cat]) categoryMap[cat] = {};
+        if (!categoryMap[cat][word]) categoryMap[cat][word] = 0;
+
+        categoryMap[cat][word]++;
+      }
+    }
+
+    for (const [pid, answers] of submissions.entries()) {
+      let points = 0;
+
+      for (const cat of CATEGORIES) {
+        const word = answers[cat];
+        if (!word) continue;
+
+        if (overrides[pid] &&
+            overrides[pid][cat] !== undefined) {
+          if (overrides[pid][cat]) points += 10;
+          continue;
+        }
+
+        if (word[0].toUpperCase() !== letter) continue;
+
+        const count =
+          categoryMap[cat][word.toLowerCase()];
+
+        points += count === 1 ? 10 : 5;
+      }
+
+      const player = this.players.get(pid);
+      if (player) player.score = points;
+    }
+  }
+
   finalizeRound() {
     if (!this.currentRound) return this.getState();
 
-    for (const [pid, answers] of this.currentRound.submissions.entries()) {
-      let points = 0;
-
-      CATEGORIES.forEach(cat => {
-        const word = answers[cat];
-        if (
-          word &&
-          word[0]?.toUpperCase() === this.currentLetter
-        ) {
-          points += 10;
-        }
-      });
-
-      const player = this.players.get(pid);
-      if (player) player.score += points;
-    }
-
-    this.currentRound = null;
+    this.currentRound.phase = "review";
+    this.calculateScores();
 
     return this.getState();
+  }
+
+  closeReview() {
+    if (!this.currentRound) return;
+
+    this.currentRound = null;
+    this.nextLetter();
   }
 
   getState() {
@@ -136,11 +184,11 @@ class GameState {
 
     return {
       letter: this.currentRound.letter,
-      phase: this.currentRound.phase,
-      timeLeft: Math.max(
-        0,
-        Math.floor((this.currentRound.endTime - Date.now()) / 1000)
-      )
+      submissions: Object.fromEntries(
+        this.currentRound.submissions
+      ),
+      overrides: this.currentRound.overrides,
+      phase: this.currentRound.phase
     };
   }
 }
