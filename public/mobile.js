@@ -1,47 +1,35 @@
-const socket = io();
-let currentRoom = null;
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Basta - Jugador</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
 
-function getPlayerId() {
-  let id = localStorage.getItem("playerId");
-  if (!id) {
-    id = crypto.randomUUID();
-    localStorage.setItem("playerId", id);
-  }
-  return id;
-}
+<div class="container">
+  <h1>Entrar a Sala</h1>
 
-function joinRoom() {
-  const roomCode = document
-    .getElementById("roomInput").value
-    .toUpperCase();
+  <input id="roomInput" placeholder="Código de sala" />
+  <input id="nameInput" placeholder="Tu nombre" />
+  <button onclick="joinRoom()">Entrar</button>
 
-  const name = document.getElementById("nameInput").value;
+  <div id="lobby" style="display:none;">
+    <h2>Esperando a que el host inicie...</h2>
+  </div>
 
-  currentRoom = roomCode;
+  <div id="gameArea" style="display:none;">
+    <h2>Letra: <span id="letter"></span></h2>
 
-  socket.emit("join-room", {
-    roomCode,
-    playerId: getPlayerId(),
-    name
-  });
+    <input id="nombre" placeholder="Nombre" />
+    <input id="ciudad" placeholder="Ciudad" />
+    <input id="animal" placeholder="Animal" />
 
-  document.getElementById("gameArea").style.display = "block";
-}
+    <button onclick="submitAnswers()">Enviar</button>
+  </div>
+</div>
 
-function submitAnswers() {
-  const answers = {
-    nombre: document.getElementById("nombre").value,
-    ciudad: document.getElementById("ciudad").value,
-    animal: document.getElementById("animal").value
-  };
-
-  socket.emit("submit-answers", {
-    roomCode: currentRoom,
-    answers
-  });
-}
-
-socket.on("update-state", state => {
-  document.getElementById("letter").innerText =
-    state.currentLetter || "-";
-});
+<script src="/socket.io/socket.io.js"></script>
+<script src="mobile.js"></script>
+</body>
+</html>
