@@ -1,64 +1,124 @@
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background: #0f172a;
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #4f46e5, #9333ea);
   color: white;
+  overflow-x: hidden;
 }
 
 .container {
-  padding: 20px;
   text-align: center;
+  padding: 30px;
 }
 
 .title {
-  font-size: 4rem;
-  letter-spacing: 8px;
+  font-size: 5rem;
+  font-weight: 900;
+  letter-spacing: 10px;
+  animation: pop 0.6s ease;
 }
 
 .letter-box {
-  font-size: 6rem;
-  margin: 20px;
-  background: #1e293b;
-  padding: 40px;
-  border-radius: 20px;
+  font-size: 8rem;
+  margin: 30px auto;
+  background: white;
+  color: #4f46e5;
+  width: 220px;
+  height: 220px;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+  animation: bounce 1s infinite alternate;
 }
 
 .timer {
-  font-size: 2rem;
+  font-size: 2.5rem;
   margin: 10px;
+}
+
+.phase {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  opacity: 0.9;
 }
 
 .players ul {
   list-style: none;
   padding: 0;
+  margin-top: 20px;
 }
 
 .players li {
-  padding: 10px;
-  margin: 5px;
-  background: #1e293b;
-  border-radius: 10px;
+  padding: 12px;
+  margin: 8px auto;
+  width: 60%;
+  border-radius: 12px;
+  font-weight: bold;
+  background: rgba(255,255,255,0.2);
+  transition: transform 0.3s ease;
 }
 
-input {
-  display: block;
-  width: 90%;
-  padding: 10px;
-  margin: 10px auto;
-  border-radius: 8px;
-  border: none;
+.players li:hover {
+  transform: scale(1.05);
 }
 
 button {
-  padding: 12px 20px;
-  border-radius: 10px;
+  padding: 14px 25px;
+  border-radius: 30px;
   border: none;
-  background: #2563eb;
-  color: white;
-  font-size: 1rem;
+  background: #facc15;
+  color: #111;
+  font-weight: bold;
   cursor: pointer;
+  margin: 10px;
+  transition: all 0.3s ease;
 }
 
 button:hover {
-  background: #1d4ed8;
+  transform: scale(1.1);
+  background: #fde047;
+}
+
+input {
+  padding: 12px;
+  width: 80%;
+  border-radius: 10px;
+  border: none;
+  margin: 10px auto;
+  display: block;
+}
+
+.result-screen {
+  position: fixed;
+  inset: 0;
+  background: #111827;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 0.5s ease;
+}
+
+.result-screen h1 {
+  font-size: 4rem;
+  color: #facc15;
+}
+
+@keyframes bounce {
+  from { transform: translateY(0); }
+  to { transform: translateY(-20px); }
+}
+
+@keyframes pop {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
