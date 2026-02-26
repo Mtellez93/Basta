@@ -5,31 +5,29 @@
   <title>Basta - Tablero</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-<body class="board">
+<body>
 
-  <div class="container">
-    <h1 class="title">BASTA</h1>
+<div class="container">
+  <h1 class="title">BASTA</h1>
 
-    <div class="letter-box">
-      <span id="letter">-</span>
-    </div>
+  <button onclick="createRoom()">Crear Sala</button>
 
-    <div class="timer">
-      ⏱ <span id="timer">0</span>s
-    </div>
+  <h2 id="roomCode"></h2>
 
-    <div class="phase" id="phase"></div>
-
-    <div id="qr" class="qr-container"></div>
-
-    <div class="players">
-      <h2>Jugadores</h2>
-      <ul id="playersList"></ul>
-    </div>
+  <div class="letter-box">
+    <span id="letter">-</span>
   </div>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="board.js"></script>
+  <div class="timer">
+    ⏱ <span id="timer">0</span>s
+  </div>
+
+  <div class="players">
+    <ul id="playersList"></ul>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="board.js"></script>
 </body>
 </html>
