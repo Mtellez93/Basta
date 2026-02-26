@@ -10,12 +10,21 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const game = new GameState();
+const rooms = new Map();
+
+function generateRoomCode() {
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let code = "";
+  for (let i = 0; i < 4; i++) {
+    code += letters[Math.floor(Math.random() * letters.length)];
+  }
+  return code;
+}
 
 app.use(express.static(path.join(__dirname, "../public")));
 
 io.on("connection", socket => {
-  registerHandlers(io, socket, game);
+  registerHandlers(io, socket, rooms, generateRoomCode);
 });
 
 const PORT = process.env.PORT || 3000;
