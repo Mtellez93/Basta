@@ -1,5 +1,15 @@
 const { LETTER_SETS, DEFAULT_CONFIG } = require("./constants");
 
+const CATEGORIES = [
+  "Nombre",
+  "Apellido",
+  "Ciudad/Pais",
+  "Animal",
+  "Color",
+  "Planta/Flor/Fruto",
+  "Cosa"
+];
+
 class GameState {
   constructor() {
     this.reset();
@@ -65,7 +75,6 @@ class GameState {
     this.currentRound = {
       letter: random,
       submissions: new Map(),
-      validations: new Map(),
       votes: new Map(),
       phase: "playing",
       endTime: Date.now() + this.config.roundTime * 1000
@@ -77,45 +86,30 @@ class GameState {
   submitAnswers(playerId, answers) {
     if (!this.currentRound || this.currentRound.phase !== "playing") return;
 
-    this.currentRound.submissions.set(playerId, answers);
-  }
+    const filtered = {};
 
-  startVoting() {
-    if (!this.currentRound) return;
-    this.currentRound.phase = "voting";
-  }
-
-  vote(voterId, targetId, category, approve) {
-    if (!this.currentRound) return;
-
-    const key = `${targetId}:${category}`;
-    if (!this.currentRound.votes.has(key))
-      this.currentRound.votes.set(key, []);
-
-    this.currentRound.votes.get(key).push({
-      voterId,
-      approve
+    CATEGORIES.forEach(cat => {
+      filtered[cat] = answers[cat] || "";
     });
+
+    this.currentRound.submissions.set(playerId, filtered);
   }
 
   finalizeRound() {
     if (!this.currentRound) return this.getState();
 
-    const totalPlayers = this.players.size;
-
     for (const [pid, answers] of this.currentRound.submissions.entries()) {
       let points = 0;
 
-      for (const [cat, word] of Object.entries(answers)) {
-        const key = `${pid}:${cat}`;
-        const votes = this.currentRound.votes.get(key) || [];
-
-        const approves = votes.filter(v => v.approve).length;
-
-        if (approves > totalPlayers / 2) {
+      CATEGORIES.forEach(cat => {
+        const word = answers[cat];
+        if (
+          word &&
+          word[0]?.toUpperCase() === this.currentLetter
+        ) {
           points += 10;
         }
-      }
+      });
 
       const player = this.players.get(pid);
       if (player) player.score += points;
@@ -123,7 +117,7 @@ class GameState {
 
     this.currentRound = null;
 
-    return this.getState(); // 🔥 MUY IMPORTANTE
+    return this.getState();
   }
 
   getState() {
@@ -132,7 +126,8 @@ class GameState {
       hostId: this.hostId,
       currentLetter: this.currentLetter,
       currentRound: this.serializeRound(),
-      gameStarted: this.gameStarted
+      gameStarted: this.gameStarted,
+      categories: CATEGORIES
     };
   }
 
