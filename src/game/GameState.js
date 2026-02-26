@@ -14,7 +14,6 @@ class GameState {
     this.config = { ...DEFAULT_CONFIG };
     this.gameStarted = false;
     this.currentRound = null;
-    this.timer = null;
   }
 
   addOrReconnectPlayer({ playerId, socketId, name }) {
@@ -75,55 +74,10 @@ class GameState {
     return random;
   }
 
-  isRoundActive() {
-    return this.currentRound && this.currentRound.phase === "playing";
-  }
-
   submitAnswers(playerId, answers) {
-    if (!this.isRoundActive()) return;
+    if (!this.currentRound || this.currentRound.phase !== "playing") return;
 
     this.currentRound.submissions.set(playerId, answers);
-    this.validateAll();
-  }
-
-  validateAll() {
-    const letter = this.currentLetter;
-    const validations = new Map();
-
-    const categoryMap = {};
-
-    for (const [pid, answers] of this.currentRound.submissions.entries()) {
-      for (const [cat, word] of Object.entries(answers)) {
-        if (!categoryMap[cat]) categoryMap[cat] = {};
-        const key = word?.toLowerCase();
-        if (!categoryMap[cat][key]) categoryMap[cat][key] = [];
-        categoryMap[cat][key].push(pid);
-      }
-    }
-
-    for (const [pid, answers] of this.currentRound.submissions.entries()) {
-      const flagged = {};
-
-      for (const [cat, word] of Object.entries(answers)) {
-        if (!word || word.trim() === "") {
-          flagged[cat] = "Vacío";
-          continue;
-        }
-
-        if (word[0].toUpperCase() !== letter) {
-          flagged[cat] = "Letra incorrecta";
-          continue;
-        }
-
-        if (categoryMap[cat][word.toLowerCase()].length > 1) {
-          flagged[cat] = "Duplicado";
-        }
-      }
-
-      validations.set(pid, flagged);
-    }
-
-    this.currentRound.validations = validations;
   }
 
   startVoting() {
@@ -145,6 +99,8 @@ class GameState {
   }
 
   finalizeRound() {
+    if (!this.currentRound) return this.getState();
+
     const totalPlayers = this.players.size;
 
     for (const [pid, answers] of this.currentRound.submissions.entries()) {
@@ -157,15 +113,17 @@ class GameState {
         const approves = votes.filter(v => v.approve).length;
 
         if (approves > totalPlayers / 2) {
-          const flag = this.currentRound.validations.get(pid)?.[cat];
-          points += flag === "Duplicado" ? 5 : 10;
+          points += 10;
         }
       }
 
-      this.players.get(pid).score += points;
+      const player = this.players.get(pid);
+      if (player) player.score += points;
     }
 
     this.currentRound = null;
+
+    return this.getState(); // 🔥 MUY IMPORTANTE
   }
 
   getState() {
@@ -183,8 +141,6 @@ class GameState {
 
     return {
       letter: this.currentRound.letter,
-      submissions: Object.fromEntries(this.currentRound.submissions),
-      validations: Object.fromEntries(this.currentRound.validations),
       phase: this.currentRound.phase,
       timeLeft: Math.max(
         0,
