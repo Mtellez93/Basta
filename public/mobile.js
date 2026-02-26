@@ -12,7 +12,15 @@ function getPlayerId() {
 }
 
 window.onload = () => {
+  const params = new URLSearchParams(window.location.search);
+  const room = params.get("room");
+
   const savedName = localStorage.getItem("playerName");
+
+  if (room) {
+    document.getElementById("roomInput").value = room;
+  }
+
   if (savedName) {
     document.getElementById("nameInput").value = savedName;
   }
@@ -28,7 +36,7 @@ function joinRoom() {
   if (!roomCode || !name) return;
 
   currentRoom = roomCode;
-  localStorage.setItem("roomCode", roomCode);
+
   localStorage.setItem("playerName", name);
 
   socket.emit("join-room", {
@@ -68,6 +76,7 @@ function submitAnswers() {
 }
 
 socket.on("update-state", state => {
+
   categories = state.categories || [];
 
   if (state.gameStarted) {
