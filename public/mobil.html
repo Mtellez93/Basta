@@ -5,26 +5,27 @@
   <title>Basta - Jugador</title>
   <link rel="stylesheet" href="style.css" />
 </head>
-<body class="mobile">
+<body>
 
-  <div class="container">
-    <h1>Unirse a la partida</h1>
+<div class="container">
+  <h1>Entrar a Sala</h1>
 
-    <input id="nameInput" placeholder="Tu nombre" />
-    <button onclick="joinGame()">Entrar</button>
+  <input id="roomInput" placeholder="Código de sala" />
+  <input id="nameInput" placeholder="Tu nombre" />
+  <button onclick="joinRoom()">Entrar</button>
 
-    <div id="gameArea" style="display:none;">
-      <h2>Letra: <span id="letter"></span></h2>
+  <div id="gameArea" style="display:none;">
+    <h2>Letra: <span id="letter"></span></h2>
 
-      <input id="nombre" placeholder="Nombre" />
-      <input id="ciudad" placeholder="Ciudad" />
-      <input id="animal" placeholder="Animal" />
+    <input id="nombre" placeholder="Nombre" />
+    <input id="ciudad" placeholder="Ciudad" />
+    <input id="animal" placeholder="Animal" />
 
-      <button onclick="submitAnswers()">Enviar</button>
-    </div>
+    <button onclick="submitAnswers()">Enviar</button>
   </div>
+</div>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="mobile.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="mobile.js"></script>
 </body>
 </html>
