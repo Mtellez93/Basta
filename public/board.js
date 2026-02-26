@@ -6,6 +6,12 @@ socket.emit("join-game", {
   role: "board"
 });
 
+new QRCode(document.getElementById("qr"), {
+  text: window.location.origin + "/mobile.html",
+  width: 150,
+  height: 150
+});
+
 socket.on("update-state", state => {
   document.getElementById("letter").innerText =
     state.currentLetter || "-";
@@ -32,9 +38,11 @@ socket.on("show-results", state => {
   const div = document.createElement("div");
   div.className = "result-screen";
 
+  const sorted = [...state.players].sort((a,b)=>b.score-a.score);
+
   div.innerHTML = `
     <h1>RESULTADOS</h1>
-    <h2>${state.players[0]?.name} gana 🏆</h2>
+    <h2>${sorted[0]?.name} gana 🏆</h2>
   `;
 
   document.body.appendChild(div);
