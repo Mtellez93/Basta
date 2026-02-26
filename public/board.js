@@ -19,9 +19,27 @@ socket.on("update-state", state => {
   const list = document.getElementById("playersList");
   list.innerHTML = "";
 
-  state.players.forEach(p => {
-    const li = document.createElement("li");
-    li.innerText = `${p.name} - ${p.score} pts`;
-    list.appendChild(li);
-  });
+  state.players
+    .sort((a,b) => b.score - a.score)
+    .forEach(p => {
+      const li = document.createElement("li");
+      li.innerText = `${p.name} - ${p.score} pts`;
+      list.appendChild(li);
+    });
+});
+
+socket.on("show-results", state => {
+  const div = document.createElement("div");
+  div.className = "result-screen";
+
+  div.innerHTML = `
+    <h1>RESULTADOS</h1>
+    <h2>${state.players[0]?.name} gana 🏆</h2>
+  `;
+
+  document.body.appendChild(div);
+
+  setTimeout(() => {
+    div.remove();
+  }, 5000);
 });
