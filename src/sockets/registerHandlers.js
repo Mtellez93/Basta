@@ -1,53 +1,62 @@
-function registerHandlers(io, socket, game) {
+function registerHandlers(io, socket, rooms, generateRoomCode) {
 
-  socket.on("join-game", ({ playerId, name }) => {
+  socket.on("create-room", () => {
+    const code = generateRoomCode();
+    const game = new (require("../game/GameState"))();
+
+    rooms.set(code, game);
+    socket.join(code);
+
+    socket.emit("room-created", code);
+  });
+
+  socket.on("join-room", ({ roomCode, playerId, name }) => {
+    const game = rooms.get(roomCode);
+    if (!game) return;
+
+    socket.join(roomCode);
+
     game.addOrReconnectPlayer({
       playerId,
       socketId: socket.id,
       name
     });
 
-    io.emit("update-state", game.getState());
+    io.to(roomCode).emit("update-state", game.getState());
   });
 
-  socket.on("start-game", () => {
+  socket.on("start-game", ({ roomCode }) => {
+    const game = rooms.get(roomCode);
+    if (!game) return;
+
     const pid = game.getPlayerIdBySocket(socket.id);
     if (pid !== game.hostId) return;
 
     game.startGame();
-    io.emit("update-state", game.getState());
+    io.to(roomCode).emit("update-state", game.getState());
   });
 
-  socket.on("submit-answers", answers => {
+  socket.on("submit-answers", ({ roomCode, answers }) => {
+    const game = rooms.get(roomCode);
+    if (!game) return;
+
     const pid = game.getPlayerIdBySocket(socket.id);
     if (!pid) return;
 
     game.submitAnswers(pid, answers);
   });
 
-  socket.on("start-voting", () => {
-    const pid = game.getPlayerIdBySocket(socket.id);
-    if (pid !== game.hostId) return;
+  socket.on("finalize-round", ({ roomCode }) => {
+    const game = rooms.get(roomCode);
+    if (!game) return;
 
-    game.startVoting();
-    io.emit("update-state", game.getState());
-  });
-
-  socket.on("vote", ({ targetId, category, approve }) => {
-    const voterId = game.getPlayerIdBySocket(socket.id);
-    if (!voterId) return;
-
-    game.vote(voterId, targetId, category, approve);
-  });
-
-  socket.on("finalize-round", () => {
     const pid = game.getPlayerIdBySocket(socket.id);
     if (pid !== game.hostId) return;
 
     const state = game.finalizeRound();
 
-    io.emit("show-results", state);  // 🔥 muestra pantalla animada
-    io.emit("update-state", state);
+    io.to(roomCode).emit("show-results", state);
+    io.to(roomCode).emit("update-state", state);
   });
 
 }
