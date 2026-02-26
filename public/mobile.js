@@ -1,4 +1,5 @@
 const socket = io();
+let currentRoom = null;
 
 function getPlayerId() {
   let id = localStorage.getItem("playerId");
@@ -9,13 +10,19 @@ function getPlayerId() {
   return id;
 }
 
-function joinGame() {
+function joinRoom() {
+  const roomCode = document
+    .getElementById("roomInput").value
+    .toUpperCase();
+
   const name = document.getElementById("nameInput").value;
 
-  socket.emit("join-game", {
+  currentRoom = roomCode;
+
+  socket.emit("join-room", {
+    roomCode,
     playerId: getPlayerId(),
-    name,
-    role: "player"
+    name
   });
 
   document.getElementById("gameArea").style.display = "block";
@@ -28,7 +35,10 @@ function submitAnswers() {
     animal: document.getElementById("animal").value
   };
 
-  socket.emit("submit-answers", answers);
+  socket.emit("submit-answers", {
+    roomCode: currentRoom,
+    answers
+  });
 }
 
 socket.on("update-state", state => {
