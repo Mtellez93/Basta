@@ -1,14 +1,15 @@
 function registerHandlers(io, socket, rooms, generateRoomCode) {
 
-  socket.on("create-room", () => {
-    const code = generateRoomCode();
-    const game = new (require("../game/GameState"))();
+socket.on("create-room", () => {
+  const code = generateRoomCode();
+  const GameState = require("../game/GameState");
+  const game = new GameState();
 
-    rooms.set(code, game);
-    socket.join(code);
+  rooms.set(code, game);
+  socket.join(code);
 
-    socket.emit("room-created", code);
-  });
+  socket.emit("room-created", code);
+});
 
   socket.on("join-room", ({ roomCode, playerId, name }) => {
     const game = rooms.get(roomCode);
