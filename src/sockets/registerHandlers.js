@@ -6,12 +6,10 @@ function registerHandlers(io, socket, rooms, generateRoomCode) {
     const game = new GameState();
 
     rooms.set(code, game);
-
     socket.join(code);
 
-    // 🔥 REGISTRAR BOARD COMO HOST
     game.addOrReconnectPlayer({
-      playerId: "BOARD",
+      playerId: "HOST",
       socketId: socket.id,
       name: "Host"
     });
@@ -40,12 +38,9 @@ function registerHandlers(io, socket, rooms, generateRoomCode) {
     if (!game) return;
 
     const pid = game.getPlayerIdBySocket(socket.id);
-
-    // 🔥 ahora sí será el BOARD
     if (pid !== game.hostId) return;
 
     game.startGame();
-
     io.to(roomCode).emit("update-state", game.getState());
   });
 
@@ -66,12 +61,33 @@ function registerHandlers(io, socket, rooms, generateRoomCode) {
     const pid = game.getPlayerIdBySocket(socket.id);
     if (pid !== game.hostId) return;
 
-    const state = game.finalizeRound();
-
-    io.to(roomCode).emit("show-results", state);
-    io.to(roomCode).emit("update-state", state);
+    game.finalizeRound();
+    io.to(roomCode).emit("update-state", game.getState());
   });
 
+  socket.on("toggle-override", ({ roomCode, playerId, category, approved }) => {
+    const game = rooms.get(roomCode);
+    if (!game) return;
+
+    const pid = game.getPlayerIdBySocket(socket.id);
+    if (pid !== game.hostId) return;
+
+    game.toggleOverride(playerId, category, approved);
+    game.calculateScores();
+
+    io.to(roomCode).emit("update-state", game.getState());
+  });
+
+  socket.on("close-review", ({ roomCode }) => {
+    const game = rooms.get(roomCode);
+    if (!game) return;
+
+    const pid = game.getPlayerIdBySocket(socket.id);
+    if (pid !== game.hostId) return;
+
+    game.closeReview();
+    io.to(roomCode).emit("update-state", game.getState());
+  });
 }
 
 module.exports = registerHandlers;
