@@ -2,23 +2,31 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Basta Multiplayer</title>
+  <title>Basta - Tablero</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body>
-  <h1>Basta</h1>
+<body class="board">
 
-  <input id="nameInput" placeholder="Tu nombre" />
-  <button onclick="joinGame()">Entrar</button>
+  <div class="container">
+    <h1 class="title">BASTA</h1>
 
-  <h2>Letra actual: <span id="letter">-</span></h2>
+    <div class="letter-box">
+      <span id="letter">-</span>
+    </div>
 
-  <button onclick="startGame()">Iniciar Juego</button>
-  <button onclick="nextLetter()">Siguiente Letra</button>
+    <div class="timer">
+      ⏱ <span id="timer">0</span>s
+    </div>
 
-  <h3>Jugadores</h3>
-  <ul id="players"></ul>
+    <div class="phase" id="phase"></div>
+
+    <div class="players">
+      <h2>Jugadores</h2>
+      <ul id="playersList"></ul>
+    </div>
+  </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="client.js"></script>
+  <script src="board.js"></script>
 </body>
 </html>
