@@ -1,15 +1,24 @@
 function registerHandlers(io, socket, rooms, generateRoomCode) {
 
-socket.on("create-room", () => {
-  const code = generateRoomCode();
-  const GameState = require("../game/GameState");
-  const game = new GameState();
+  socket.on("create-room", () => {
+    const code = generateRoomCode();
+    const GameState = require("../game/GameState");
+    const game = new GameState();
 
-  rooms.set(code, game);
-  socket.join(code);
+    rooms.set(code, game);
 
-  socket.emit("room-created", code);
-});
+    socket.join(code);
+
+    // 🔥 REGISTRAR BOARD COMO HOST
+    game.addOrReconnectPlayer({
+      playerId: "BOARD",
+      socketId: socket.id,
+      name: "Host"
+    });
+
+    socket.emit("room-created", code);
+    io.to(code).emit("update-state", game.getState());
+  });
 
   socket.on("join-room", ({ roomCode, playerId, name }) => {
     const game = rooms.get(roomCode);
@@ -31,9 +40,12 @@ socket.on("create-room", () => {
     if (!game) return;
 
     const pid = game.getPlayerIdBySocket(socket.id);
+
+    // 🔥 ahora sí será el BOARD
     if (pid !== game.hostId) return;
 
     game.startGame();
+
     io.to(roomCode).emit("update-state", game.getState());
   });
 
