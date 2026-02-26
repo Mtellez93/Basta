@@ -3,7 +3,6 @@ const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
 
-const GameState = require("./game/GameState");
 const registerHandlers = require("./sockets/registerHandlers");
 
 const app = express();
@@ -30,5 +29,5 @@ io.on("connection", socket => {
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
-  console.log(`Servidor corriendo en puerto ${PORT}`);
+  console.log(`Servidor en puerto ${PORT}`);
 });
