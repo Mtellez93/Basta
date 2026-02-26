@@ -21,14 +21,19 @@ function getSavedRoom() {
 window.onload = () => {
   const params = new URLSearchParams(window.location.search);
   const roomFromQR = params.get("room");
-
   const savedRoom = getSavedRoom();
+  const savedName = localStorage.getItem("playerName");
 
   const roomCode = roomFromQR || savedRoom;
 
   if (roomCode) {
     document.getElementById("roomInput").value = roomCode;
     currentRoom = roomCode;
+  }
+
+  // 👇 ESTA ES LA PARTE QUE NO SABÍAS DÓNDE PONER
+  if (savedName) {
+    document.getElementById("nameInput").value = savedName;
   }
 };
 
@@ -42,7 +47,11 @@ function joinRoom() {
   if (!roomCode || !name) return;
 
   currentRoom = roomCode;
+
   saveRoom(roomCode);
+
+  // 👇 ESTA ES LA OTRA PARTE IMPORTANTE
+  localStorage.setItem("playerName", name);
 
   socket.emit("join-room", {
     roomCode,
@@ -82,13 +91,13 @@ socket.on("update-state", state => {
 socket.on("connect", () => {
   const savedRoom = getSavedRoom();
   const playerId = getPlayerId();
-  const name = document.getElementById("nameInput").value;
+  const savedName = localStorage.getItem("playerName");
 
-  if (savedRoom && playerId && name) {
+  if (savedRoom && playerId && savedName) {
     socket.emit("join-room", {
       roomCode: savedRoom,
       playerId,
-      name
+      name: savedName
     });
   }
 });
