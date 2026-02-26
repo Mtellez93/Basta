@@ -52,16 +52,11 @@ function registerHandlers(io, socket, rooms, generateRoomCode) {
     if (!pid) return;
 
     game.submitAnswers(pid, answers);
-  });
 
-  socket.on("finalize-round", ({ roomCode }) => {
-    const game = rooms.get(roomCode);
-    if (!game) return;
-
-    const pid = game.getPlayerIdBySocket(socket.id);
-    if (pid !== game.hostId) return;
-
+    // 🔥 IMPORTANTE
+    // cuando alguien envía, pasamos a revisión
     game.finalizeRound();
+
     io.to(roomCode).emit("update-state", game.getState());
   });
 
