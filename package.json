@@ -1,17 +1,13 @@
 {
-  "name": "basta-game",
+  "name": "basta-multisala",
   "version": "1.0.0",
-  "description": "Juego multiplayer de Basta con reconexión",
+  "description": "Juego Basta con salas y sistema avanzado",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "start": "node src/server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
     "socket.io": "^4.7.2"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.2"
   }
 }
