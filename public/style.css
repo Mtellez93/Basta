@@ -8,6 +8,8 @@ body {
 .container {
   text-align: center;
   padding: 30px;
+  max-width: 640px;
+  margin: 0 auto;
 }
 
 .title {
@@ -15,7 +17,14 @@ body {
   font-weight: bold;
 }
 
+button,
+select,
+input {
+  font-size: 16px;
+}
+
 button {
+  min-height: 48px;
   padding: 12px 20px;
   border-radius: 20px;
   border: none;
@@ -26,13 +35,41 @@ button {
   cursor: pointer;
 }
 
-input {
-  padding: 10px;
-  width: 80%;
-  border-radius: 8px;
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+input,
+select {
+  padding: 14px 12px;
+  width: min(92%, 460px);
+  border-radius: 12px;
   border: none;
   margin: 10px auto;
   display: block;
+  box-sizing: border-box;
+}
+
+.answer-input {
+  font-size: 18px;
+}
+
+.lobby-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.rounds-label {
+  font-weight: bold;
+}
+
+#totalRounds {
+  width: 90px;
+  margin: 10px 0;
 }
 
 .letter-box {
@@ -61,4 +98,39 @@ input {
 
 .review-card h3 {
   margin-top: 0;
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 20px 14px 28px;
+  }
+
+  .title {
+    font-size: 3rem;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+
+  h2 {
+    font-size: 1.3rem;
+  }
+
+  input,
+  select,
+  button {
+    width: min(96%, 540px);
+  }
+
+  .answer-input {
+    min-height: 52px;
+    font-size: 19px;
+  }
+
+  .basta-btn {
+    width: min(96%, 540px);
+    min-height: 54px;
+    font-size: 1.1rem;
+  }
 }
