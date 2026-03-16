@@ -33,14 +33,14 @@ function registerHandlers(io, socket, rooms, generateRoomCode) {
     io.to(roomCode).emit("update-state", game.getState());
   });
 
-  socket.on("start-game", ({ roomCode }) => {
+  socket.on("start-game", ({ roomCode, totalRounds }) => {
     const game = rooms.get(roomCode);
     if (!game) return;
 
     const pid = game.getPlayerIdBySocket(socket.id);
     if (pid !== game.hostId) return;
 
-    game.startGame();
+    game.startGame({ totalRounds });
     io.to(roomCode).emit("update-state", game.getState());
   });
 
@@ -52,9 +52,6 @@ function registerHandlers(io, socket, rooms, generateRoomCode) {
     if (!pid) return;
 
     game.submitAnswers(pid, answers);
-
-    // 🔥 IMPORTANTE
-    // cuando alguien envía, pasamos a revisión
     game.finalizeRound();
 
     io.to(roomCode).emit("update-state", game.getState());

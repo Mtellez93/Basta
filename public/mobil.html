@@ -9,20 +9,25 @@
 <body>
 
 <div class="container">
-  <h1>Entrar a Sala</h1>
+  <div id="joinHeader">
+    <h1>Entrar a Sala</h1>
+  </div>
 
-  <input id="roomInput" placeholder="Código de sala" />
-  <input id="nameInput" placeholder="Tu nombre" />
-  <button onclick="joinRoom()">Entrar</button>
+  <div id="joinForm">
+    <input id="roomInput" placeholder="Código de sala" autocomplete="off" autocapitalize="characters" />
+    <input id="nameInput" placeholder="Tu nombre" autocomplete="name" />
+    <button onclick="joinRoom()">Entrar</button>
+  </div>
 
   <div id="lobby" style="display:none;">
+    <h2 id="roomPlayerInfo"></h2>
     <h2>Esperando que el host inicie...</h2>
   </div>
 
   <div id="gameArea" style="display:none;">
     <h2>Letra: <span id="letter"></span></h2>
     <div id="inputs"></div>
-    <button onclick="submitAnswers()">Enviar</button>
+    <button class="basta-btn" onclick="submitAnswers()">Basta</button>
   </div>
 </div>
 
