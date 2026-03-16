@@ -107,6 +107,20 @@ function updateSubmitState(isReviewPhase = false) {
   });
 }
 
+function updateSubmitState() {
+  const submitBtn = document.querySelector(".basta-btn");
+  const inputs = document.querySelectorAll(".answer-input");
+
+  submitBtn.disabled = submittedThisRound;
+  submitBtn.innerText = submittedThisRound
+    ? "Esperando revisión..."
+    : "Basta";
+
+  inputs.forEach(input => {
+    input.disabled = submittedThisRound;
+  });
+}
+
 socket.on("update-state", state => {
   categories = state.categories || [];
 
@@ -148,5 +162,6 @@ socket.on("update-state", state => {
 
     submittedThisRound = alreadySubmitted;
     updateSubmitState(state.currentRound.phase !== "playing");
+    updateSubmitState();
   }
 });

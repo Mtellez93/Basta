@@ -54,6 +54,10 @@ function registerHandlers(io, socket, rooms, generateRoomCode) {
     game.submitAnswers(pid, answers);
     game.finalizeRound();
 
+    if (game.areAllPlayersSubmitted()) {
+      game.finalizeRound();
+    }
+
     io.to(roomCode).emit("update-state", game.getState());
   });
 
