@@ -6,7 +6,14 @@ function createRoom() {
 }
 
 function startGame() {
-  socket.emit("start-game", { roomCode: currentRoom });
+  const totalRounds = Number(
+    document.getElementById("totalRounds").value
+  );
+
+  socket.emit("start-game", {
+    roomCode: currentRoom,
+    totalRounds
+  });
 }
 
 function closeReview() {
@@ -62,6 +69,18 @@ function renderGame(state) {
   document.getElementById("letter").innerText =
     state.currentLetter || "-";
 
+  const roundNumber = Math.min(
+    state.roundsPlayed + 1,
+    state.totalRounds
+  );
+
+  const roundInfo = document.getElementById("roundInfo");
+  if (state.currentRound) {
+    roundInfo.innerText = `Ronda ${roundNumber}/${state.totalRounds}`;
+  } else {
+    roundInfo.innerText = `Juego terminado (${state.totalRounds} rondas)`;
+  }
+
   renderReview(state);
 }
 
@@ -69,7 +88,22 @@ function renderReview(state) {
   const section = document.getElementById("reviewSection");
   section.innerHTML = "";
 
-  if (!state.currentRound) return;
+  if (!state.currentRound) {
+    const ranking = [...state.players]
+      .filter(player => player.playerId !== state.hostId)
+      .sort((a, b) => b.score - a.score);
+
+    const title = document.createElement("h3");
+    title.innerText = "Resultados finales";
+    section.appendChild(title);
+
+    ranking.forEach(player => {
+      const row = document.createElement("div");
+      row.innerText = `${player.name}: ${player.score} pts`;
+      section.appendChild(row);
+    });
+    return;
+  }
 
   if (state.currentRound.phase !== "review") return;
 
