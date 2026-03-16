@@ -261,6 +261,7 @@ class GameState {
       phase: this.currentRound.phase,
       submittedPlayers: Array.from(this.currentRound.submittedPlayers),
       roundScores: this.currentRound.roundScores
+      submittedPlayers: Array.from(this.currentRound.submittedPlayers)
     };
   }
 }
