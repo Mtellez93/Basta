@@ -95,7 +95,7 @@ class GameState {
   }
 
   submitAnswers(playerId, answers) {
-    if (!this.currentRound) return;
+    if (!this.currentRound || this.currentRound.phase !== "playing") return;
 
     const filtered = {};
     CATEGORIES.forEach(cat => {
@@ -104,6 +104,27 @@ class GameState {
 
     this.currentRound.submissions.set(playerId, filtered);
     this.currentRound.submittedPlayers.add(playerId);
+  }
+
+
+  fillMissingSubmissions() {
+    if (!this.currentRound) return;
+
+    const activePlayers = Array.from(this.players.values()).filter(
+      player => player.playerId !== this.hostId
+    );
+
+    activePlayers.forEach(player => {
+      if (this.currentRound.submissions.has(player.playerId)) return;
+
+      const emptyAnswers = {};
+      CATEGORIES.forEach(cat => {
+        emptyAnswers[cat] = "";
+      });
+
+      this.currentRound.submissions.set(player.playerId, emptyAnswers);
+      this.currentRound.submittedPlayers.add(player.playerId);
+    });
   }
 
   toggleOverride(playerId, category, approved) {
@@ -177,8 +198,11 @@ class GameState {
   }
 
   finalizeRound() {
-    if (!this.currentRound) return this.getState();
+    if (!this.currentRound || this.currentRound.phase !== "playing") {
+      return this.getState();
+    }
 
+    this.fillMissingSubmissions();
     this.currentRound.phase = "review";
     this.calculateScores();
 

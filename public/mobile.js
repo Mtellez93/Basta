@@ -87,6 +87,26 @@ function submitAnswers() {
   updateSubmitState();
 }
 
+function updateSubmitState(isReviewPhase = false) {
+  const submitBtn = document.querySelector(".basta-btn");
+  const inputs = document.querySelectorAll(".answer-input");
+  const locked = submittedThisRound || isReviewPhase;
+
+  submitBtn.disabled = locked;
+
+  if (isReviewPhase && !submittedThisRound) {
+    submitBtn.innerText = "Otro jugador dijo Basta";
+  } else if (submittedThisRound) {
+    submitBtn.innerText = "Esperando revisión...";
+  } else {
+    submitBtn.innerText = "Basta";
+  }
+
+  inputs.forEach(input => {
+    input.disabled = locked;
+  });
+}
+
 function updateSubmitState() {
   const submitBtn = document.querySelector(".basta-btn");
   const inputs = document.querySelectorAll(".answer-input");
@@ -141,6 +161,7 @@ socket.on("update-state", state => {
     }
 
     submittedThisRound = alreadySubmitted;
+    updateSubmitState(state.currentRound.phase !== "playing");
     updateSubmitState();
   }
 });
