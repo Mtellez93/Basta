@@ -66,6 +66,12 @@ class GameState {
     this.gameStarted = true;
     this.usedLetters.clear();
     this.roundsPlayed = 0;
+
+    for (const player of this.players.values()) {
+      if (player.playerId === this.hostId) continue;
+      player.score = 0;
+    }
+
     return this.nextLetter();
   }
 
@@ -88,6 +94,7 @@ class GameState {
       submissions: new Map(),
       overrides: {},
       submittedPlayers: new Set(),
+      roundScores: {},
       phase: "playing"
     };
 
@@ -178,8 +185,15 @@ class GameState {
         points += count === 1 ? 10 : 5;
       }
 
+      const previousRoundPoints =
+        this.currentRound.roundScores[pid] || 0;
+
+      this.currentRound.roundScores[pid] = points;
+
       const player = this.players.get(pid);
-      if (player) player.score = points;
+      if (player) {
+        player.score += points - previousRoundPoints;
+      }
     }
   }
 
@@ -245,6 +259,8 @@ class GameState {
       ),
       overrides: this.currentRound.overrides,
       phase: this.currentRound.phase,
+      submittedPlayers: Array.from(this.currentRound.submittedPlayers),
+      roundScores: this.currentRound.roundScores
       submittedPlayers: Array.from(this.currentRound.submittedPlayers)
     };
   }

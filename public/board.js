@@ -117,7 +117,7 @@ function renderReview(state) {
     card.className = "review-card";
 
     const title = document.createElement("h3");
-    title.innerText = player.name + " (" + player.score + " pts)";
+    title.innerText = `${player.name} (acumulado: ${player.score} pts)`;
     card.appendChild(title);
 
     for (const [cat, word] of Object.entries(answers)) {

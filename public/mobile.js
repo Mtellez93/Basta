@@ -104,6 +104,9 @@ function updateSubmitState(isReviewPhase = false) {
 
   inputs.forEach(input => {
     input.disabled = locked;
+
+  inputs.forEach(input => {
+    input.disabled = locked;
   });
 }
 
