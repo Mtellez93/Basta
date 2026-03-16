@@ -1,6 +1,7 @@
 const socket = io();
 let currentRoom = null;
 let categories = [];
+let submittedThisRound = false;
 
 function getPlayerId() {
   let id = localStorage.getItem("playerId");
@@ -18,7 +19,7 @@ window.onload = () => {
   const savedName = localStorage.getItem("playerName");
 
   if (room) {
-    document.getElementById("roomInput").value = room;
+    document.getElementById("roomInput").value = room.toUpperCase();
   }
 
   if (savedName) {
@@ -45,6 +46,9 @@ function joinRoom() {
     name
   });
 
+  document.getElementById("roomPlayerInfo").innerText =
+    `${roomCode} · ${name}`;
+
   document.getElementById("lobby").style.display =
     "block";
 }
@@ -57,6 +61,11 @@ function renderCategories() {
     const input = document.createElement("input");
     input.placeholder = cat;
     input.id = "cat_" + cat;
+    input.className = "answer-input";
+    input.autocomplete = "off";
+    input.autocapitalize = "words";
+    input.spellcheck = true;
+    input.enterKeyHint = "next";
     container.appendChild(input);
   });
 }
@@ -73,13 +82,39 @@ function submitAnswers() {
     roomCode: currentRoom,
     answers
   });
+
+  submittedThisRound = true;
+  updateSubmitState();
+}
+
+function updateSubmitState(isReviewPhase = false) {
+  const submitBtn = document.querySelector(".basta-btn");
+  const inputs = document.querySelectorAll(".answer-input");
+  const locked = submittedThisRound || isReviewPhase;
+
+  submitBtn.disabled = locked;
+
+  if (isReviewPhase && !submittedThisRound) {
+    submitBtn.innerText = "Otro jugador dijo Basta";
+  } else if (submittedThisRound) {
+    submitBtn.innerText = "Esperando revisión...";
+  } else {
+    submitBtn.innerText = "Basta";
+  }
+
+  inputs.forEach(input => {
+    input.disabled = locked;
+  });
 }
 
 socket.on("update-state", state => {
-
   categories = state.categories || [];
 
   if (state.gameStarted) {
+    document.getElementById("joinHeader").style.display =
+      "none";
+    document.getElementById("joinForm").style.display =
+      "none";
     document.getElementById("lobby").style.display =
       "none";
     document.getElementById("gameArea").style.display =
@@ -88,6 +123,30 @@ socket.on("update-state", state => {
     document.getElementById("letter").innerText =
       state.currentLetter || "-";
 
-    renderCategories();
+    if (!state.currentRound) {
+      document.getElementById("inputs").innerHTML =
+        "<p>Partida finalizada.</p>";
+      const submitBtn = document.querySelector(".basta-btn");
+      submitBtn.disabled = true;
+      submitBtn.innerText = "Juego terminado";
+      return;
+    }
+
+    const alreadySubmitted =
+      (state.currentRound.submittedPlayers || []).includes(
+        getPlayerId()
+      );
+
+    if (
+      !document.getElementById("inputs").children.length ||
+      (state.currentRound.phase === "playing" &&
+        !alreadySubmitted &&
+        submittedThisRound)
+    ) {
+      renderCategories();
+    }
+
+    submittedThisRound = alreadySubmitted;
+    updateSubmitState(state.currentRound.phase !== "playing");
   }
 });

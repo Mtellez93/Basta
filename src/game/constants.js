@@ -4,7 +4,8 @@ const LETTER_SETS = {
 
 const DEFAULT_CONFIG = {
   language: "es",
-  roundTime: 60
+  roundTime: 60,
+  totalRounds: 5
 };
 
 module.exports = {

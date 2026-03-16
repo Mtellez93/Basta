@@ -24,6 +24,7 @@ class GameState {
     this.config = { ...DEFAULT_CONFIG };
     this.gameStarted = false;
     this.currentRound = null;
+    this.roundsPlayed = 0;
   }
 
   addOrReconnectPlayer({ playerId, socketId, name }) {
@@ -55,9 +56,16 @@ class GameState {
   }
 
   startGame(config = {}) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    const mergedConfig = { ...DEFAULT_CONFIG, ...config };
+    const rounds = Number.parseInt(mergedConfig.totalRounds, 10);
+
+    this.config = {
+      ...mergedConfig,
+      totalRounds: Number.isFinite(rounds) && rounds > 0 ? rounds : DEFAULT_CONFIG.totalRounds
+    };
     this.gameStarted = true;
     this.usedLetters.clear();
+    this.roundsPlayed = 0;
     return this.nextLetter();
   }
 
@@ -79,6 +87,7 @@ class GameState {
       letter: random,
       submissions: new Map(),
       overrides: {},
+      submittedPlayers: new Set(),
       phase: "playing"
     };
 
@@ -86,7 +95,7 @@ class GameState {
   }
 
   submitAnswers(playerId, answers) {
-    if (!this.currentRound) return;
+    if (!this.currentRound || this.currentRound.phase !== "playing") return;
 
     const filtered = {};
     CATEGORIES.forEach(cat => {
@@ -94,6 +103,28 @@ class GameState {
     });
 
     this.currentRound.submissions.set(playerId, filtered);
+    this.currentRound.submittedPlayers.add(playerId);
+  }
+
+
+  fillMissingSubmissions() {
+    if (!this.currentRound) return;
+
+    const activePlayers = Array.from(this.players.values()).filter(
+      player => player.playerId !== this.hostId
+    );
+
+    activePlayers.forEach(player => {
+      if (this.currentRound.submissions.has(player.playerId)) return;
+
+      const emptyAnswers = {};
+      CATEGORIES.forEach(cat => {
+        emptyAnswers[cat] = "";
+      });
+
+      this.currentRound.submissions.set(player.playerId, emptyAnswers);
+      this.currentRound.submittedPlayers.add(player.playerId);
+    });
   }
 
   toggleOverride(playerId, category, approved) {
@@ -152,9 +183,26 @@ class GameState {
     }
   }
 
-  finalizeRound() {
-    if (!this.currentRound) return this.getState();
+  areAllPlayersSubmitted() {
+    if (!this.currentRound) return false;
 
+    const activePlayers = Array.from(this.players.values()).filter(
+      player => player.playerId !== this.hostId
+    );
+
+    if (!activePlayers.length) return false;
+
+    return activePlayers.every(player =>
+      this.currentRound.submittedPlayers.has(player.playerId)
+    );
+  }
+
+  finalizeRound() {
+    if (!this.currentRound || this.currentRound.phase !== "playing") {
+      return this.getState();
+    }
+
+    this.fillMissingSubmissions();
     this.currentRound.phase = "review";
     this.calculateScores();
 
@@ -165,6 +213,12 @@ class GameState {
     if (!this.currentRound) return;
 
     this.currentRound = null;
+    this.roundsPlayed += 1;
+
+    if (this.roundsPlayed >= this.config.totalRounds) {
+      return;
+    }
+
     this.nextLetter();
   }
 
@@ -175,7 +229,9 @@ class GameState {
       currentLetter: this.currentLetter,
       currentRound: this.serializeRound(),
       gameStarted: this.gameStarted,
-      categories: CATEGORIES
+      categories: CATEGORIES,
+      roundsPlayed: this.roundsPlayed,
+      totalRounds: this.config.totalRounds
     };
   }
 
@@ -188,7 +244,8 @@ class GameState {
         this.currentRound.submissions
       ),
       overrides: this.currentRound.overrides,
-      phase: this.currentRound.phase
+      phase: this.currentRound.phase,
+      submittedPlayers: Array.from(this.currentRound.submittedPlayers)
     };
   }
 }
