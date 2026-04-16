@@ -95,6 +95,7 @@ class GameState {
       overrides: {},
       submittedPlayers: new Set(),
       roundScores: {},
+      stopRequested: false,
       phase: "playing"
     };
 

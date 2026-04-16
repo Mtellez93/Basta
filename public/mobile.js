@@ -107,6 +107,13 @@ function updateSubmitState(isReviewPhase = false) {
   });
 }
 
+socket.on("round-stop-requested", () => {
+  if (submittedThisRound) return;
+  if (!currentRoom || !categories.length) return;
+
+  submitAnswers();
+});
+
 socket.on("update-state", state => {
   categories = state.categories || [];
 
