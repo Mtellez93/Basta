@@ -1,4 +1,5 @@
 function registerHandlers(io, socket, rooms, generateRoomCode) {
+  const STOP_COLLECTION_MS = 1500;
 
   socket.on("create-room", () => {
     const code = generateRoomCode();
@@ -52,10 +53,21 @@ function registerHandlers(io, socket, rooms, generateRoomCode) {
     if (!pid) return;
 
     game.submitAnswers(pid, answers);
-    game.finalizeRound();
 
     if (game.areAllPlayersSubmitted()) {
       game.finalizeRound();
+    } else if (game.currentRound && !game.currentRound.stopRequested) {
+      game.currentRound.stopRequested = true;
+      io.to(roomCode).emit("round-stop-requested");
+
+      setTimeout(() => {
+        const latestGame = rooms.get(roomCode);
+        if (!latestGame || !latestGame.currentRound) return;
+        if (latestGame.currentRound.phase !== "playing") return;
+
+        latestGame.finalizeRound();
+        io.to(roomCode).emit("update-state", latestGame.getState());
+      }, STOP_COLLECTION_MS);
     }
 
     io.to(roomCode).emit("update-state", game.getState());
